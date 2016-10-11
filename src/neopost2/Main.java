@@ -1,6 +1,8 @@
 package neopost2;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -12,7 +14,103 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class Main {
 
+  private static Table table;
+
   public static void main(String[] args) throws IOException {
+    Display display = new Display();
+    Shell shell = new Shell(display, SWT.APPLICATION_MODAL | SWT.CLOSE | SWT.MIN | SWT.MAX | SWT.RESIZE);
+    shell.setSize(1280, 720);
+    shell.setText("NeoPost2");
+    shell.setLayout(new GridLayout());
+    Composite headerPane = new Composite(shell, SWT.NONE);
+    GridData gd = new GridData();
+    gd.heightHint = 80;
+    gd.horizontalAlignment = SWT.FILL;
+    headerPane.setLayoutData(gd);
+    GridLayout gl = new GridLayout();
+    gl.numColumns = 2;
+    headerPane.setLayout(gl);
+
+    Group filterPane = new Group(headerPane, SWT.NONE);
+    filterPane.setText(" 필터 ");
+    gd = new GridData();
+    gd.verticalAlignment = SWT.FILL;
+    gd.grabExcessHorizontalSpace = true;
+    gd.grabExcessVerticalSpace = true;
+    gd.horizontalAlignment = SWT.FILL;
+    filterPane.setLayoutData(gd);
+
+    Button qBtn = new Button(headerPane, SWT.PUSH);
+    qBtn.addSelectionListener(new SelectionAdapter() {
+      @Override
+      public void widgetSelected(SelectionEvent e) {
+        query();
+        refreshTable();
+      }
+    });
+    qBtn.setText("조회");
+    gd = new GridData();
+    gd.verticalAlignment = SWT.FILL;
+    gd.grabExcessVerticalSpace = true;
+    gd.horizontalAlignment = SWT.END;
+    gd.widthHint = 60;
+    qBtn.setLayoutData(gd);
+
+    table = new Table(shell, SWT.FULL_SELECTION);
+    table.setLayoutData(new GridData(GridData.FILL_BOTH));
+    table.setHeaderVisible(true);
+
+    TableColumn column = new TableColumn(table, SWT.LEFT);
+    column.setText("시/도");
+    column.setWidth(80);
+    column = new TableColumn(table, SWT.LEFT);
+    column.setText("구/군");
+    column.setWidth(120);
+    column = new TableColumn(table, SWT.LEFT);
+    column.setText("동");
+    column.setWidth(75);
+    column = new TableColumn(table, SWT.LEFT);
+    column.setText("단지");
+    column.setWidth(180);
+    column = new TableColumn(table, SWT.RIGHT);
+    column.setText("전용면적");
+    column.setWidth(60);
+    column = new TableColumn(table, SWT.RIGHT);
+    column.setText("평균가격");
+    column.setWidth(80);
+    column = new TableColumn(table, SWT.RIGHT);
+    column.setText("거래건수");
+    column.setWidth(60);
+
+    shell.open();
+    while (!shell.isDisposed()) {
+      if (!display.readAndDispatch()) {
+        display.sleep();
+      }
+    }
+    display.dispose();
+  }
+
+  private static void refreshTable() {
+    table.clearAll();
+
+    for (Apartment apartment : ApartmentRegistry.getInstance().getApartments()) {
+      TableItem item = new TableItem(table, SWT.NONE);
+      Danji danji = apartment.getDanji();
+      Dong dong = danji.getDong();
+      Gugun gugun = dong.getGugun();
+      Sido sido = gugun.getSido();
+      item.setText(0, sido.getName());
+      item.setText(1, gugun.getName());
+      item.setText(2, dong.getName());
+      item.setText(3, danji.getName());
+      item.setText(4, apartment.getPyong() + "평");
+      item.setText(5, apartment.getAveragePrice() + "만");
+      item.setText(6, apartment.getDealCount() + "");
+    }
+  }
+
+  private static void query() {
     Country country = new Country();
     country.setTargetFilters(new String[]{"서울특별시", "경기도"});
 
@@ -66,70 +164,13 @@ public class Main {
         Future<String> f = ecs.take();
         long difference = System.nanoTime() - startTime;
         System.out.println( "[" + difference/1000000 + "] " + f.get() + " parsed.");
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      } catch (ExecutionException e) {
+      } catch (InterruptedException | ExecutionException e) {
         e.printStackTrace();
       }
     }
     es.shutdown();
     System.out.println("Total count : " + count.intValue());
     ApartmentRegistry.getInstance().sortApartments();
-
-    Display display = new Display();
-    Shell shell = new Shell(display, SWT.APPLICATION_MODAL | SWT.CLOSE | SWT.MIN | SWT.MAX | SWT.RESIZE);
-    shell.setSize(1280, 720);
-    shell.setText("NeoPost2");
-    shell.setLayout(new FillLayout());
-    Composite contents = new Composite(shell, SWT.NONE);
-    contents.setLayout(new GridLayout());
-    Table table = new Table(contents, SWT.FULL_SELECTION);
-    table.setLayoutData(new GridData(GridData.FILL_BOTH));
-    table.setHeaderVisible(true);
-
-    TableColumn column = new TableColumn(table, SWT.LEFT);
-    column.setText("시/도");
-    column.setWidth(80);
-    column = new TableColumn(table, SWT.LEFT);
-    column.setText("구/군");
-    column.setWidth(120);
-    column = new TableColumn(table, SWT.LEFT);
-    column.setText("동");
-    column.setWidth(75);
-    column = new TableColumn(table, SWT.LEFT);
-    column.setText("단지");
-    column.setWidth(180);
-    column = new TableColumn(table, SWT.RIGHT);
-    column.setText("전용면적");
-    column.setWidth(60);
-    column = new TableColumn(table, SWT.RIGHT);
-    column.setText("평균가격");
-    column.setWidth(80);
-    column = new TableColumn(table, SWT.RIGHT);
-    column.setText("거래건수");
-    column.setWidth(60);
-
-    for (Apartment apartment : ApartmentRegistry.getInstance().getApartments()) {
-      TableItem item = new TableItem(table, SWT.NONE);
-      Danji danji = apartment.getDanji();
-      Dong dong = danji.getDong();
-      Gugun gugun = dong.getGugun();
-      Sido sido = gugun.getSido();
-      item.setText(0, sido.getName());
-      item.setText(1, gugun.getName());
-      item.setText(2, dong.getName());
-      item.setText(3, danji.getName());
-      item.setText(4, apartment.getPyong() + "평");
-      item.setText(5, apartment.getAveragePrice() + "만");
-      item.setText(6, apartment.getDealCount() + "");
-    }
-    shell.open();
-    while (!shell.isDisposed()) {
-      if (!display.readAndDispatch()) {
-        display.sleep();
-      }
-    }
-    display.dispose();
   }
 
 //    File input = new File(inputFile);

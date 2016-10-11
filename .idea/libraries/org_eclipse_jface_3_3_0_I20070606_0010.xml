@@ -6,6 +6,10 @@
       <root url="jar://$MAVEN_REPOSITORY$/org/eclipse/swt/3.3.0-v3346/swt-3.3.0-v3346.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/eclipse/core/commands/3.3.0-I20070605-0010/commands-3.3.0-I20070605-0010.jar!/" />
       <root url="jar://$MAVEN_REPOSITORY$/org/eclipse/equinox/common/3.6.200-v20130402-1505/common-3.6.200-v20130402-1505.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/eclipse/jface/3.3.0-I20070606-0010/jface-3.3.0-I20070606-0010.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/eclipse/swt/3.3.0-v3346/swt-3.3.0-v3346.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/eclipse/core/commands/3.3.0-I20070605-0010/commands-3.3.0-I20070605-0010.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/org/eclipse/equinox/common/3.6.200-v20130402-1505/common-3.6.200-v20130402-1505.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />
