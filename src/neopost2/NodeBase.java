@@ -9,28 +9,14 @@ abstract public class NodeBase implements INode {
 
   protected void populateSub(Object... args) {
     BufferedReader reader = null;
-    StringBuilder buffer = null;
     if (useStored()) {
       if (!getStoredFile(args).isFile()) {
         return;
       }
-    } else {
-      buffer = new StringBuilder();
     }
     try {
       reader = openReader(args);
-      if (!useStored()) {
-        reader.mark(1024 * 64);
-      }
       parseContent(reader, args);
-      if (!useStored()) {
-        reader.reset();
-        char [] cb = new char [1024];
-        int len;
-        while ((len = reader.read(cb, 0, cb.length)) != -1) {
-          buffer.append(cb, 0, len);
-        }
-      }
     } catch (IOException e) {
       e.printStackTrace();
     } finally {
@@ -41,30 +27,35 @@ abstract public class NodeBase implements INode {
         }
       }
     }
-    if (buffer != null) {
-      BufferedWriter w = null;
-      try {
-        w = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(getStoredFile(args))));
-        w.write(buffer.toString());
-      } catch (IOException e) {
-        e.printStackTrace();
-      } finally {
+  }
+
+  private BufferedReader openReader(Object... args) throws IOException {
+    if (useStored()) {
+      return new BufferedReader(new InputStreamReader(new FileInputStream(getStoredFile(args))));
+    }
+    BufferedReader reader = new BufferedReader(new InputStreamReader(openConnectedInputStream(args)));
+    StringBuilder buffer = new StringBuilder();
+    char [] cb = new char [1024];
+    int len;
+    while ((len = reader.read(cb, 0, cb.length)) != -1) {
+      buffer.append(cb, 0, len);
+    }
+    String str = buffer.toString();
+    BufferedWriter w = null;
+    try {
+      w = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(getStoredFile(args))));
+      w.write(str);
+    } catch (IOException e) {
+      e.printStackTrace();
+    } finally {
+      if (w != null) {
         try {
           w.close();
         } catch (IOException ignored) {
         }
       }
     }
-  }
-
-  private BufferedReader openReader(Object... args) throws IOException {
-    InputStream in;
-    if (useStored()) {
-      in = new FileInputStream(getStoredFile(args));
-    } else {
-      in = openConnectedInputStream(args);
-    }
-    return new BufferedReader(new InputStreamReader(in));
+    return new BufferedReader(new StringReader(str));
   }
 
   private File getStoredFile(Object[] args) {

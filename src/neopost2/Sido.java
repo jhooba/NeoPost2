@@ -52,7 +52,7 @@ public class Sido extends NodeBase implements Comparable<Sido> {
   @Override
   public void populate() {
     guguns = new ArrayList<>();
-    populateSub(new Objects[0]);
+    populateSub();
   }
 
   @Override
@@ -63,6 +63,7 @@ public class Sido extends NodeBase implements Comparable<Sido> {
   @Override
   protected InputStream openConnectedInputStream(Object[] args) throws IOException {
     HttpURLConnection con = (HttpURLConnection) new URL(SRH_PATH + GUGUN_DO).openConnection();
+    con.setConnectTimeout(5000);
     con.setRequestMethod("POST");
     con.setDoOutput(true);
     con.setDoInput(true);

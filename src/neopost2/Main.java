@@ -13,15 +13,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class Main {
 
+  private static Shell shell;
   private static Table table;
 
   public static void main(String[] args) throws IOException {
     query(true);
 
     Display display = new Display();
-    Shell shell = new Shell(display, SWT.APPLICATION_MODAL | SWT.CLOSE | SWT.MIN | SWT.MAX | SWT.RESIZE);
+    shell = new Shell(display, SWT.APPLICATION_MODAL | SWT.CLOSE | SWT.MIN | SWT.MAX | SWT.RESIZE);
     shell.setSize(1280, 720);
-    shell.setText("NeoPost2");
     shell.setLayout(new GridLayout());
     Composite headerPane = new Composite(shell, SWT.NONE);
     GridData gd = new GridData();
@@ -45,8 +45,11 @@ public class Main {
     qBtn.addSelectionListener(new SelectionAdapter() {
       @Override
       public void widgetSelected(SelectionEvent e) {
+        table.clearAll();
+        table.setRedraw(true);
         query(false);
-        refreshTable();
+        table.setItemCount(ApartmentRegistry.getInstance().getApartments().size());
+        shell.setText("NeoPost2 [" + table.getItemCount() + "]");
       }
     });
     qBtn.setText("조회");
@@ -57,7 +60,7 @@ public class Main {
     gd.widthHint = 60;
     qBtn.setLayoutData(gd);
 
-    table = new Table(shell, SWT.FULL_SELECTION);
+    table = new Table(shell, SWT.VIRTUAL | SWT.FULL_SELECTION);
     table.setLayoutData(new GridData(GridData.FILL_BOTH));
     table.setHeaderVisible(true);
 
@@ -83,22 +86,10 @@ public class Main {
     column.setText("거래건수");
     column.setWidth(60);
 
-    refreshTable();
-
-    shell.open();
-    while (!shell.isDisposed()) {
-      if (!display.readAndDispatch()) {
-        display.sleep();
-      }
-    }
-    display.dispose();
-  }
-
-  private static void refreshTable() {
-    table.clearAll();
-
-    for (Apartment apartment : ApartmentRegistry.getInstance().getApartments()) {
-      TableItem item = new TableItem(table, SWT.NONE);
+    table.addListener(SWT.SetData, event -> {
+      TableItem item = (TableItem)event.item;
+      int index = table.indexOf(item);
+      Apartment apartment = ApartmentRegistry.getInstance().getApartments().get(index);
       Danji danji = apartment.getDanji();
       Dong dong = danji.getDong();
       Gugun gugun = dong.getGugun();
@@ -108,9 +99,20 @@ public class Main {
       item.setText(2, dong.getName());
       item.setText(3, danji.getName());
       item.setText(4, apartment.getPyong() + "평");
-      item.setText(5, apartment.getAveragePrice() + "만");
+      item.setText(5, apartment.getAveragePrice() / 10000.f + "억");
       item.setText(6, apartment.getDealCount() + "");
+    });
+
+    table.setItemCount(ApartmentRegistry.getInstance().getApartments().size());
+    shell.setText("NeoPost2 [" + table.getItemCount() + "]건");
+
+    shell.open();
+    while (!shell.isDisposed()) {
+      if (!display.readAndDispatch()) {
+        display.sleep();
+      }
     }
+    display.dispose();
   }
 
   private static void query(boolean useStored) {
@@ -124,8 +126,6 @@ public class Main {
     ExecutorService es = Executors.newFixedThreadPool(64);
     CompletionService<String> ecs = new ExecutorCompletionService<>(es);
     AtomicInteger count = new AtomicInteger(1);
-
-    AtomicInteger testSampleCount = new AtomicInteger(useStored ? Integer.MAX_VALUE : 60);
 
     ecs.submit(() -> {
       country.populate();
@@ -142,11 +142,6 @@ public class Main {
                 ecs.submit(() -> {
                   dg.populate();
                   for (Danji dj : dg.getDanjis()) {
-                    if (testSampleCount.intValue() == 0) {
-                      continue;
-                    }
-                    testSampleCount.decrementAndGet();
-
                     count.incrementAndGet();
                     ecs.submit(() -> {
                       dj.populate();
@@ -164,17 +159,17 @@ public class Main {
       }
       return "Country";
     });
-    for (int i = 0; i < count.intValue(); ++i) {
+    int i = 0;
+    while (count.decrementAndGet() >= 0) {
       try {
         Future<String> f = ecs.take();
         long difference = System.nanoTime() - startTime;
-        System.out.println( "[" + difference/1000000 + "] " + f.get() + " parsed.");
+        System.out.println((++i) + ".[" + difference / 1000000 + "] " + f.get() + " parsed.");
       } catch (InterruptedException | ExecutionException e) {
         e.printStackTrace();
       }
     }
     es.shutdown();
-    System.out.println("Total count : " + count.intValue());
     ApartmentRegistry.getInstance().sortApartments();
   }
 

@@ -50,7 +50,7 @@ public class Gugun extends NodeBase implements Comparable<Gugun> {
   @Override
   public void populate() {
     dongs = new ArrayList<>();
-    populateSub(new Object[0]);
+    populateSub();
   }
 
   @Override
@@ -61,6 +61,7 @@ public class Gugun extends NodeBase implements Comparable<Gugun> {
   @Override
   protected InputStream openConnectedInputStream(Object[] args) throws IOException {
     HttpURLConnection con = (HttpURLConnection) new URL(SRH_PATH + DONG_DO).openConnection();
+    con.setConnectTimeout(5000);
     con.setRequestMethod("POST");
     con.setDoOutput(true);
     con.setDoInput(true);

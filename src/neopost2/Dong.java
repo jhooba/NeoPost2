@@ -73,6 +73,7 @@ public class Dong extends NodeBase implements Comparable<Dong> {
     int p = (Integer)args[1];
 
     HttpURLConnection con = (HttpURLConnection) new URL(SRH_PATH + DANJI_DO).openConnection();
+    con.setConnectTimeout(5000);
     con.setRequestMethod("POST");
     con.setDoOutput(true);
     con.setDoInput(true);
@@ -88,6 +89,9 @@ public class Dong extends NodeBase implements Comparable<Dong> {
   protected void parseContent(BufferedReader reader, Object[] args) throws IOException {
     Gson gson = new GsonBuilder().create();
     NameCodeListJson list = gson.fromJson(reader, NameCodeListJson.class);
+    if (list == null) {
+      return;
+    }
     for (NameCodeJson j : list.getJsonList()) {
       String name = j.getNAME();
       Danji dj = danjiMap.get(name);
@@ -100,7 +104,10 @@ public class Dong extends NodeBase implements Comparable<Dong> {
 
   @Override
   protected String getStoredFileName(Object[] args) {
-    return "dg" + dongCode;
+    int y = (Integer)args[0];
+    int p = (Integer)args[1];
+
+    return "dg" + dongCode + "." + y + "." + p;
   }
 
   public Gugun getGugun() {

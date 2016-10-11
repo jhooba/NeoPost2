@@ -27,7 +27,7 @@ public class Country extends NodeBase {
 
   public void populate() {
     sidos = new ArrayList<>(2);
-    populateSub(new Object[0]);
+    populateSub();
   }
 
   @Override
@@ -53,6 +53,7 @@ public class Country extends NodeBase {
   @Override
   protected InputStream openConnectedInputStream(Object[] args) throws IOException {
     HttpURLConnection con = (HttpURLConnection) new URL(SRH_PATH + SRH_DO).openConnection();
+    con.setConnectTimeout(5000);
     con.setRequestMethod("POST");
     con.setDoOutput(true);
     con.setDoInput(true);

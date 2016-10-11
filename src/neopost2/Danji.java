@@ -102,6 +102,7 @@ public class Danji extends NodeBase implements Comparable<Danji> {
     int y = (Integer)args[0];
 
     HttpURLConnection con = (HttpURLConnection) new URL(SRH_PATH + MONTHLY_DO).openConnection();
+    con.setConnectTimeout(5000);
     con.setRequestMethod("POST");
     con.setRequestProperty("Referer", "http://rt.molit.go.kr/srh/dtl.do");
     con.setDoOutput(true);
