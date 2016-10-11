@@ -2,11 +2,9 @@ package neopost2;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import org.jetbrains.annotations.NotNull;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
@@ -17,7 +15,7 @@ import java.util.TreeMap;
 /**
  * Created by jhooba on 2016-09-18.
  */
-public class Dong implements INode, Comparable<Dong> {
+public class Dong extends NodeBase implements Comparable<Dong> {
   private static final String POST_STR = "menuGubun=A&houseType=1&srhYear=%d&srhPeriod=%d&gubunCode=LAND&gugunCode=%d&dongCode=%d";
   private static final int[] PERIODS = new int[] {1, 2, 3, 4};
 
@@ -55,45 +53,54 @@ public class Dong implements INode, Comparable<Dong> {
 
   @Override
   public void populate() {
-    BufferedReader reader = null;
     danjiMap = new TreeMap<>();
     int thisYear = Calendar.getInstance().get(Calendar.YEAR);
     for (int y = thisYear - 1; y <= thisYear; ++y) {
       for (int p : PERIODS) {
-        try {
-          HttpURLConnection con = (HttpURLConnection) new URL(SRH_PATH + DANJI_DO).openConnection();
-          con.setRequestMethod("POST");
-          con.setDoOutput(true);
-          con.setDoInput(true);
-          con.setUseCaches(false);
-          con.setDefaultUseCaches(false);
-          OutputStreamWriter out = new OutputStreamWriter(con.getOutputStream());
-          out.write(String.format(POST_STR, y, p, gugun.getCode(), dongCode));
-          out.close();
-          reader = new BufferedReader(new InputStreamReader(con.getInputStream()));
-
-          Gson gson = new GsonBuilder().create();
-          NameCodeListJson list = gson.fromJson(reader, NameCodeListJson.class);
-          for (NameCodeJson j : list.getJsonList()) {
-            String name = j.getNAME();
-            Danji dj = danjiMap.get(name);
-            if (dj == null) {
-              dj = new Danji(this, j.getNAME(), Long.parseLong(j.getCODE()));
-              danjiMap.put(dj.getName(), dj);
-            }
-          }
-        } catch (IOException e) {
-          e.printStackTrace();
-        } finally {
-          if (reader != null) {
-            try {
-              reader.close();
-            } catch (IOException e) {
-            }
-          }
-        }
+        populateSub(y, p);
       }
     }
+  }
+
+  @Override
+  public boolean useStored() {
+    return gugun.useStored();
+  }
+
+  @Override
+  protected InputStream openConnectedInputStream(Object[] args) throws IOException {
+    int y = (Integer)args[0];
+    int p = (Integer)args[1];
+
+    HttpURLConnection con = (HttpURLConnection) new URL(SRH_PATH + DANJI_DO).openConnection();
+    con.setRequestMethod("POST");
+    con.setDoOutput(true);
+    con.setDoInput(true);
+    con.setUseCaches(false);
+    con.setDefaultUseCaches(false);
+    OutputStreamWriter out = new OutputStreamWriter(con.getOutputStream());
+    out.write(String.format(POST_STR, y, p, gugun.getCode(), dongCode));
+    out.close();
+    return con.getInputStream();
+  }
+
+  @Override
+  protected void parseContent(BufferedReader reader, Object[] args) throws IOException {
+    Gson gson = new GsonBuilder().create();
+    NameCodeListJson list = gson.fromJson(reader, NameCodeListJson.class);
+    for (NameCodeJson j : list.getJsonList()) {
+      String name = j.getNAME();
+      Danji dj = danjiMap.get(name);
+      if (dj == null) {
+        dj = new Danji(this, j.getNAME(), Long.parseLong(j.getCODE()));
+        danjiMap.put(dj.getName(), dj);
+      }
+    }
+  }
+
+  @Override
+  protected String getStoredFileName(Object[] args) {
+    return "dg" + dongCode;
   }
 
   public Gugun getGugun() {
@@ -109,7 +116,7 @@ public class Dong implements INode, Comparable<Dong> {
   }
 
   @Override
-  public int compareTo(Dong d) {
+  public int compareTo(@NotNull Dong d) {
     int delta = gugun.compareTo(d.gugun);
     if (delta == 0) {
       return name.compareTo(d.name);

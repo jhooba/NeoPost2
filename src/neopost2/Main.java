@@ -3,7 +3,6 @@ package neopost2;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
@@ -17,6 +16,8 @@ public class Main {
   private static Table table;
 
   public static void main(String[] args) throws IOException {
+    query(true);
+
     Display display = new Display();
     Shell shell = new Shell(display, SWT.APPLICATION_MODAL | SWT.CLOSE | SWT.MIN | SWT.MAX | SWT.RESIZE);
     shell.setSize(1280, 720);
@@ -44,7 +45,7 @@ public class Main {
     qBtn.addSelectionListener(new SelectionAdapter() {
       @Override
       public void widgetSelected(SelectionEvent e) {
-        query();
+        query(false);
         refreshTable();
       }
     });
@@ -82,6 +83,8 @@ public class Main {
     column.setText("거래건수");
     column.setWidth(60);
 
+    refreshTable();
+
     shell.open();
     while (!shell.isDisposed()) {
       if (!display.readAndDispatch()) {
@@ -110,8 +113,10 @@ public class Main {
     }
   }
 
-  private static void query() {
-    Country country = new Country();
+  private static void query(boolean useStored) {
+    ApartmentRegistry.getInstance().clear();
+
+    Country country = new Country(useStored);
     country.setTargetFilters(new String[]{"서울특별시", "경기도"});
 
     long startTime = System.nanoTime();
@@ -120,7 +125,7 @@ public class Main {
     CompletionService<String> ecs = new ExecutorCompletionService<>(es);
     AtomicInteger count = new AtomicInteger(1);
 
-    AtomicInteger testSampleCount = new AtomicInteger(60);
+    AtomicInteger testSampleCount = new AtomicInteger(useStored ? Integer.MAX_VALUE : 60);
 
     ecs.submit(() -> {
       country.populate();

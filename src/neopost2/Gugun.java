@@ -2,11 +2,9 @@ package neopost2;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import org.jetbrains.annotations.NotNull;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
@@ -14,7 +12,7 @@ import java.util.ArrayList;
 /**
  * Created by jhooba on 2016-09-18.
  */
-public class Gugun implements INode, Comparable<Gugun> {
+public class Gugun extends NodeBase implements Comparable<Gugun> {
   private static final String POST_STR = "gugunCode=%d";
 
   private static class NameCodeJson {
@@ -51,36 +49,45 @@ public class Gugun implements INode, Comparable<Gugun> {
 
   @Override
   public void populate() {
-    BufferedReader reader = null;
     dongs = new ArrayList<>();
-    try {
-      HttpURLConnection con = (HttpURLConnection) new URL(SRH_PATH + DONG_DO).openConnection();
-      con.setRequestMethod("POST");
-      con.setDoOutput(true);
-      con.setDoInput(true);
-      con.setUseCaches(false);
-      con.setDefaultUseCaches(false);
-      OutputStreamWriter out = new OutputStreamWriter(con.getOutputStream());
-      out.write(String.format(POST_STR, code));
-      out.close();
-      reader = new BufferedReader(new InputStreamReader(con.getInputStream()));
+    populateSub(new Object[0]);
+  }
 
-      Gson gson = new GsonBuilder().create();
-      NameCodeListJson list = gson.fromJson(reader, NameCodeListJson.class);
-      dongs.ensureCapacity(list.getJsonList().size());
-      for (NameCodeJson j : list.getJsonList()) {
-        dongs.add(new Dong(this, j.getNAME(), Long.parseLong(j.getCODE())));
-      }
-    } catch (IOException e) {
-      e.printStackTrace();
-    } finally {
-      if (reader != null) {
-        try {
-          reader.close();
-        } catch (IOException e) {
-        }
-      }
+  @Override
+  public boolean useStored() {
+    return sido.useStored();
+  }
+
+  @Override
+  protected InputStream openConnectedInputStream(Object[] args) throws IOException {
+    HttpURLConnection con = (HttpURLConnection) new URL(SRH_PATH + DONG_DO).openConnection();
+    con.setRequestMethod("POST");
+    con.setDoOutput(true);
+    con.setDoInput(true);
+    con.setUseCaches(false);
+    con.setDefaultUseCaches(false);
+    OutputStreamWriter out = new OutputStreamWriter(con.getOutputStream());
+    out.write(String.format(POST_STR, code));
+    out.close();
+    return con.getInputStream();
+  }
+
+  @Override
+  protected void parseContent(BufferedReader reader, Object[] args) throws IOException {
+    Gson gson = new GsonBuilder().create();
+    NameCodeListJson list = gson.fromJson(reader, NameCodeListJson.class);
+    if (list == null) {
+      return;
     }
+    dongs.ensureCapacity(list.getJsonList().size());
+    for (NameCodeJson j : list.getJsonList()) {
+      dongs.add(new Dong(this, j.getNAME(), Long.parseLong(j.getCODE())));
+    }
+  }
+
+  @Override
+  protected String getStoredFileName(Object[] args) {
+    return "gg" + code;
   }
 
   public int getCode() {
@@ -100,7 +107,7 @@ public class Gugun implements INode, Comparable<Gugun> {
   }
 
   @Override
-  public int compareTo(Gugun g) {
+  public int compareTo(@NotNull Gugun g) {
     int delta = sido.compareTo(g.sido);
     if (delta == 0) {
       return name.compareTo(g.name);

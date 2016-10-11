@@ -2,11 +2,9 @@ package neopost2;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import org.jetbrains.annotations.NotNull;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.*;
@@ -14,7 +12,7 @@ import java.util.*;
 /**
  * Created by jhooba on 2016-09-18.
  */
-public class Danji implements INode, Comparable<Danji> {
+public class Danji extends NodeBase implements Comparable<Danji> {
   private static final String MONTHLY_POST_STR = "menuGubun=A&houseType=1&gugunCode=%d&danjiCode=%d&srhYear=%d";
 
   private static class DealObj {
@@ -100,66 +98,79 @@ public class Danji implements INode, Comparable<Danji> {
   }
 
   @Override
-  public void populate() {
-    BufferedReader reader = null;
+  protected InputStream openConnectedInputStream(Object[] args) throws IOException {
+    int y = (Integer)args[0];
+
+    HttpURLConnection con = (HttpURLConnection) new URL(SRH_PATH + MONTHLY_DO).openConnection();
+    con.setRequestMethod("POST");
+    con.setRequestProperty("Referer", "http://rt.molit.go.kr/srh/dtl.do");
+    con.setDoOutput(true);
+    con.setDoInput(true);
+    con.setUseCaches(false);
+    con.setDefaultUseCaches(false);
+    OutputStreamWriter out = new OutputStreamWriter(con.getOutputStream());
+    out.write(String.format(MONTHLY_POST_STR, dong.getGugun().getCode(), code, y));
+    out.close();
+    return con.getInputStream();
+  }
+
+  @Override
+  protected void parseContent(BufferedReader reader, Object[] args) {
+    int y = (Integer)args[0];
+
     int thisYear = Calendar.getInstance().get(Calendar.YEAR);
     int thisMonth = Calendar.getInstance().get(Calendar.MONTH);
-    for (int y = thisYear - 1; y <= thisYear; ++y) {
-      try {
-        HttpURLConnection con = (HttpURLConnection) new URL(SRH_PATH + MONTHLY_DO).openConnection();
-        con.setRequestMethod("POST");
-        con.setRequestProperty("Referer", "http://rt.molit.go.kr/srh/dtl.do");
-        con.setDoOutput(true);
-        con.setDoInput(true);
-        con.setUseCaches(false);
-        con.setDefaultUseCaches(false);
-        OutputStreamWriter out = new OutputStreamWriter(con.getOutputStream());
-        out.write(String.format(MONTHLY_POST_STR, dong.getGugun().getCode(), code, y));
-        out.close();
-        reader = new BufferedReader(new InputStreamReader(con.getInputStream()));
 
-        Gson gson = new GsonBuilder().create();
-        MonthListListObj list = gson.fromJson(reader, MonthListListObj.class);
-        for (MonthListObj j : list.getJsonList()) {
-          int startMonth = (y == thisYear) ? 0 : thisMonth - 1;
-          for (int m = startMonth; m < j.getMonthList().size(); ++m) {
-            List<DealObj> ds = j.getMonthList().get(m);
-            for (DealObj dl : ds) {
-              Area a = new Area(dl.getBLDG_AREA());
-              int p = a.getPyong();
-              Apartment apartment = apartmentMap.get(p);
-              if (apartment == null) {
-                apartment = new Apartment(this, a);
-                apartmentMap.put(p, apartment);
-              } else {
-                apartment.addArea(a);
-              }
+    Gson gson = new GsonBuilder().create();
+    Danji.MonthListListObj list = gson.fromJson(reader, Danji.MonthListListObj.class);
+    for (Danji.MonthListObj j : list.getJsonList()) {
+      int startMonth = (y == thisYear) ? 0 : thisMonth - 1;
+      for (int m = startMonth; m < j.getMonthList().size(); ++m) {
+        List<Danji.DealObj> ds = j.getMonthList().get(m);
+        for (Danji.DealObj dl : ds) {
+          Area a = new Area(dl.getBLDG_AREA());
+          int p = a.getPyong();
+          Apartment apartment = apartmentMap.get(p);
+          if (apartment == null) {
+            apartment = new Apartment(this, a);
+            apartmentMap.put(p, apartment);
+          } else {
+            apartment.addArea(a);
+          }
 
-              if (bobn == null) {
-                bobn = dl.getBOBN();
-              }
-              if (buildYear == -1) {
-                buildYear = Integer.parseInt(dl.getBUILD_YEAR());
-              }
-              apartment.addDeal(new Deal(Integer.parseInt(dl.getSUM_AMT().replaceAll(",", ""))));
-            }
+          if (bobn == null) {
+            bobn = dl.getBOBN();
           }
-        }
-      } catch (IOException e) {
-        e.printStackTrace();
-      } finally {
-        if (reader != null) {
-          try {
-            reader.close();
-          } catch (IOException e) {
+          if (buildYear == -1) {
+            buildYear = Integer.parseInt(dl.getBUILD_YEAR());
           }
+          apartment.addDeal(new Deal(Integer.parseInt(dl.getSUM_AMT().replaceAll(",", ""))));
         }
       }
+    }
+  }
+
+  @Override
+  protected String getStoredFileName(Object[] args) {
+    int y = (Integer)args[0];
+    return "dj" + code + "." + y;
+  }
+
+  @Override
+  public void populate() {
+    int thisYear = Calendar.getInstance().get(Calendar.YEAR);
+    for (int y = thisYear - 1; y <= thisYear; ++y) {
+      populateSub(y);
     }
     for (Apartment ap : apartmentMap.values()) {
       ap.sortAreas();
       ApartmentRegistry.getInstance().addApartment(ap);
     }
+  }
+
+  @Override
+  public boolean useStored() {
+    return dong.useStored();
   }
 
   public Dong getDong() {
@@ -175,7 +186,7 @@ public class Danji implements INode, Comparable<Danji> {
   }
 
   @Override
-  public int compareTo(Danji d) {
+  public int compareTo(@NotNull Danji d) {
     int delta = dong.compareTo(d.dong);
     if (delta == 0) {
       return name.compareTo(d.name);
