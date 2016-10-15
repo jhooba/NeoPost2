@@ -7,11 +7,12 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.text.DecimalFormat;
-import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipEntry;
@@ -50,6 +51,7 @@ public class Main {
       @Override
       public void widgetSelected(SelectionEvent e) {
         setTableItemCount(0, null);
+        table.update();
         query(false);
       }
     });
@@ -128,107 +130,102 @@ public class Main {
   }
 
   private static void query(boolean useStored) {
-    Thread th = new Thread(()->{
-      ApartmentRegistry.getInstance().getApartments().clear();
+    ApartmentRegistry.getInstance().getApartments().clear();
 
-      ZipFile zip = null;
-      Country country = null;
-      String [] queryTime = new String[1];
-      try {
-        if (useStored) {
-          File f = new File(Country.getStoredDir(), "NeoPost2.zip");
-          if (!f.isFile()) {
-            return;
-          }
-          zip = new ZipFile(f, ZipFile.OPEN_READ);
-          ZipEntry qte = zip.getEntry("qt");
-          if (qte != null) {
-            Reader reader = new InputStreamReader(zip.getInputStream(qte));
-            StringBuilder buffer = new StringBuilder();
-            char [] cb = new char [1024];
-            int len;
-            while ((len = reader.read(cb, 0, cb.length)) != -1) {
-              buffer.append(cb, 0, len);
-            }
-            queryTime[0] = buffer.toString();
-          }
+    ZipFile zip = null;
+    Country country = null;
+    String [] queryTime = new String[1];
+    try {
+      if (useStored) {
+        File f = new File(Country.getStoredDir(), "NeoPost2.zip");
+        if (!f.isFile()) {
+          return;
         }
-        country = new Country(zip);
-        country.setTargetFilters(new String[]{"서울특별시", "경기도"});
-
-        long startTime = System.nanoTime();
-
-        ExecutorService es = Executors.newFixedThreadPool(64);
-        CompletionService<String> ecs = new ExecutorCompletionService<>(es);
-        AtomicInteger count = new AtomicInteger(1);
-
-        final Country c = country;
-        ecs.submit(() -> {
-          c.populate();
-          for (Sido sido : c.getSidos()) {
-            count.incrementAndGet();
-            ecs.submit(() -> {
-              sido.populate();
-              for (Gugun gg : sido.getGuguns()) {
-                count.incrementAndGet();
-                ecs.submit(() -> {
-                  gg.populate();
-                  for (Dong dg : gg.getDongs()) {
-                    count.incrementAndGet();
-                    ecs.submit(() -> {
-                      dg.populate();
-                      for (Danji dj : dg.getDanjis()) {
-                        count.incrementAndGet();
-                        ecs.submit(() -> {
-                          dj.populate();
-                          return dj.getName();
-                        });
-                      }
-                      return dg.getName();
-                    });
-                  }
-                  return gg.getName();
-                });
-              }
-              return sido.getName();
-            });
+        zip = new ZipFile(f, ZipFile.OPEN_READ);
+        ZipEntry qte = zip.getEntry("qt");
+        if (qte != null) {
+          Reader reader = new InputStreamReader(zip.getInputStream(qte));
+          StringBuilder buffer = new StringBuilder();
+          char [] cb = new char [1024];
+          int len;
+          while ((len = reader.read(cb, 0, cb.length)) != -1) {
+            buffer.append(cb, 0, len);
           }
-          return "Country";
-        });
-        int i = 0;
-        while (count.decrementAndGet() >= 0) {
-          try {
-            Future<String> f = ecs.take();
-            System.out.println((++i) + ". " + f.get() + " parsed.");
-          } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
-          }
-        }
-        es.shutdown();
-        ApartmentRegistry.getInstance().sortApartments();
-        long elapsed = System.nanoTime() - startTime;
-        System.out.println(elapsed / 1000000 / 1000.f + " sec. elapsed.");
-      } catch (IOException e) {
-        e.printStackTrace();
-      } finally {
-        if (zip !=  null) {
-          try {
-            zip.close();
-          } catch (IOException e) {
-          }
-        }
-        if (country != null) {
-          String zipTime = Country.closeZipWrite();
-          if (zipTime != null) {
-            queryTime[0] = zipTime;
-          }
+          queryTime[0] = buffer.toString();
         }
       }
-      display.asyncExec(()->{
-        setTableItemCount(ApartmentRegistry.getInstance().getApartments().size(), queryTime[0]);
+      country = new Country(zip);
+      country.setTargetFilters(new String[]{"서울특별시", "경기도"});
+
+      long startTime = System.nanoTime();
+
+      ExecutorService es = Executors.newFixedThreadPool(64);
+      CompletionService<String> ecs = new ExecutorCompletionService<>(es);
+      AtomicInteger count = new AtomicInteger(1);
+
+      final Country c = country;
+      ecs.submit(() -> {
+        c.populate();
+        for (Sido sido : c.getSidos()) {
+          count.incrementAndGet();
+          ecs.submit(() -> {
+            sido.populate();
+            for (Gugun gg : sido.getGuguns()) {
+              count.incrementAndGet();
+              ecs.submit(() -> {
+                gg.populate();
+                for (Dong dg : gg.getDongs()) {
+                  count.incrementAndGet();
+                  ecs.submit(() -> {
+                    dg.populate();
+                    for (Danji dj : dg.getDanjis()) {
+                      count.incrementAndGet();
+                      ecs.submit(() -> {
+                        dj.populate();
+                        return dj.getName();
+                      });
+                    }
+                    return dg.getName();
+                  });
+                }
+                return gg.getName();
+              });
+            }
+            return sido.getName();
+          });
+        }
+        return "Country";
       });
-    });
-    th.start();
+      int i = 0;
+      while (count.decrementAndGet() >= 0) {
+        try {
+          Future<String> f = ecs.take();
+          System.out.println((++i) + ". " + f.get() + " parsed.");
+        } catch (InterruptedException | ExecutionException e) {
+          e.printStackTrace();
+        }
+      }
+      es.shutdown();
+      ApartmentRegistry.getInstance().sortApartments();
+      long elapsed = System.nanoTime() - startTime;
+      System.out.println(elapsed / 1000000 / 1000.f + " sec. elapsed.");
+    } catch (IOException e) {
+      e.printStackTrace();
+    } finally {
+      if (zip !=  null) {
+        try {
+          zip.close();
+        } catch (IOException e) {
+        }
+      }
+      if (country != null) {
+        String zipTime = Country.closeZipWrite(new File(Country.getStoredDir(), "NeoPost2.zip"));
+        if (zipTime != null) {
+          queryTime[0] = zipTime;
+        }
+      }
+    }
+    setTableItemCount(ApartmentRegistry.getInstance().getApartments().size(), queryTime[0]);
   }
 
    private static void setTableItemCount(int count, String queryTime) {

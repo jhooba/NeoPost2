@@ -16,7 +16,9 @@ abstract public class NodeBase implements INode {
 
   private static final SimpleDateFormat SIMPLE_DATE_FORMAT = new SimpleDateFormat("MM/dd HH:mm:ss");
   protected final ZipFile zip;
-  protected static ZipOutputStream zout = null;
+
+  private static File tempFile;
+  protected static ZipOutputStream zout;
 
   protected NodeBase(ZipFile zip) {
     this.zip = zip;
@@ -61,9 +63,9 @@ abstract public class NodeBase implements INode {
     String str = buffer.toString();
     synchronized (NodeBase.class) {
       if (zout == null) {
-        File f = new File(Country.getStoredDir(), "NeoPost2.zip");
-        f.createNewFile();
-        zout = new ZipOutputStream(new FileOutputStream((f)));
+        tempFile = new File(Country.getStoredDir(), "NeoPost2.zip.tmp");
+        tempFile.createNewFile();
+        zout = new ZipOutputStream(new FileOutputStream(tempFile));
       }
       zout.putNextEntry(new ZipEntry(getStoredFileName(args)));
       OutputStreamWriter w = new OutputStreamWriter(zout);
@@ -78,7 +80,7 @@ abstract public class NodeBase implements INode {
   protected abstract void parseContent(BufferedReader reader, Object... args) throws IOException;
   protected abstract String getStoredFileName(Object... args);
 
-  public static String closeZipWrite() {
+  public static String closeZipWrite(File file) {
     if (zout == null) {
       return null;
     }
@@ -90,6 +92,8 @@ abstract public class NodeBase implements INode {
       w.flush();
       zout.closeEntry();
       zout.close();
+      file.delete();
+      tempFile.renameTo(file);
       return queryTime;
     } catch (IOException ignored) {
     }
