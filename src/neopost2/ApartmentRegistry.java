@@ -9,8 +9,7 @@ import java.util.List;
  */
 public class ApartmentRegistry {
   private static final ApartmentRegistry instance = new ApartmentRegistry();
-  private ArrayList<Apartment> apartments = new ArrayList<>();
-  private List<Apartment> syncApartments = Collections.synchronizedList(apartments);
+  private List<Apartment> syncApartments = Collections.synchronizedList(new ArrayList<>());
 
   public static ApartmentRegistry getInstance() {
     return instance;
@@ -21,15 +20,14 @@ public class ApartmentRegistry {
   }
 
   public List<Apartment> getApartments() {
-    return apartments;
+    return syncApartments;
   }
 
   public void sortApartments() {
-    Collections.sort(apartments);
+    Collections.sort(syncApartments);
   }
 
   public void clear() {
-    apartments = new ArrayList<>();
-    syncApartments = Collections.synchronizedList(apartments);
+    syncApartments = Collections.synchronizedList(new ArrayList<>());
   }
 }
