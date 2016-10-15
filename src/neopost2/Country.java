@@ -5,6 +5,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.zip.ZipFile;
 
 /**
  * Created by jhooba on 2016-09-18.
@@ -15,10 +16,9 @@ public class Country extends NodeBase {
 
   private String[] targetFilters;
   private ArrayList<Sido> sidos;
-  private boolean useStored;
 
-  public Country(boolean useStored) {
-    this.useStored = useStored;
+  public Country(ZipFile zip) {
+    super(zip);
   }
 
   public void setTargetFilters(String[] targetFilters) {
@@ -28,11 +28,6 @@ public class Country extends NodeBase {
   public void populate() {
     sidos = new ArrayList<>(2);
     populateSub();
-  }
-
-  @Override
-  public boolean useStored() {
-    return useStored;
   }
 
   public ArrayList<Sido> getSidos() {
@@ -51,7 +46,7 @@ public class Country extends NodeBase {
   }
 
   @Override
-  protected InputStream openConnectedInputStream(Object[] args) throws IOException {
+  protected InputStream openConnectedInputStream(Object... args) throws IOException {
     HttpURLConnection con = (HttpURLConnection) new URL(SRH_PATH + SRH_DO).openConnection();
     con.setConnectTimeout(5000);
     con.setRequestMethod("POST");
@@ -66,7 +61,7 @@ public class Country extends NodeBase {
   }
 
   @Override
-  protected void parseContent(BufferedReader reader, Object[] args) throws IOException {
+  protected void parseContent(BufferedReader reader, Object... args) throws IOException {
     String line;
     boolean in = false;
     while ((line = reader.readLine()) != null) {
@@ -97,7 +92,7 @@ public class Country extends NodeBase {
   }
 
   @Override
-  protected String getStoredFileName(Object[] args) {
+  protected String getStoredFileName(Object... args) {
     return "ct";
   }
 }

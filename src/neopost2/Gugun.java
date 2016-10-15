@@ -42,6 +42,7 @@ public class Gugun extends NodeBase implements Comparable<Gugun> {
   private ArrayList<Dong> dongs;
 
   public Gugun(Sido sido, String name, int code) {
+    super(sido.zip);
     this.sido = sido;
     this.name = name;
     this.code = code;
@@ -54,12 +55,7 @@ public class Gugun extends NodeBase implements Comparable<Gugun> {
   }
 
   @Override
-  public boolean useStored() {
-    return sido.useStored();
-  }
-
-  @Override
-  protected InputStream openConnectedInputStream(Object[] args) throws IOException {
+  protected InputStream openConnectedInputStream(Object... args) throws IOException {
     HttpURLConnection con = (HttpURLConnection) new URL(SRH_PATH + DONG_DO).openConnection();
     con.setConnectTimeout(5000);
     con.setRequestMethod("POST");
@@ -74,7 +70,7 @@ public class Gugun extends NodeBase implements Comparable<Gugun> {
   }
 
   @Override
-  protected void parseContent(BufferedReader reader, Object[] args) throws IOException {
+  protected void parseContent(BufferedReader reader, Object... args) throws IOException {
     Gson gson = new GsonBuilder().create();
     NameCodeListJson list = gson.fromJson(reader, NameCodeListJson.class);
     if (list == null) {
@@ -87,7 +83,7 @@ public class Gugun extends NodeBase implements Comparable<Gugun> {
   }
 
   @Override
-  protected String getStoredFileName(Object[] args) {
+  protected String getStoredFileName(Object... args) {
     return "gg" + code;
   }
 

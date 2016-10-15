@@ -26,8 +26,4 @@ public class ApartmentRegistry {
   public void sortApartments() {
     Collections.sort(syncApartments);
   }
-
-  public void clear() {
-    syncApartments = Collections.synchronizedList(new ArrayList<>());
-  }
 }

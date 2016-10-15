@@ -12,6 +12,4 @@ public interface INode {
   String MONTHLY_DO = "getMonthListAjax.do";
 
   void populate();
-
-  boolean useStored();
 }

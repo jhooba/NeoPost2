@@ -7,10 +7,12 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Calendar;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.zip.ZipFile;
 
 public class Main {
 
@@ -123,62 +125,86 @@ public class Main {
 
   private static void query(boolean useStored) {
     Thread th = new Thread(()->{
-      ApartmentRegistry.getInstance().clear();
+      ApartmentRegistry.getInstance().getApartments().clear();
 
-      Country country = new Country(useStored);
-      country.setTargetFilters(new String[]{"서울특별시", "경기도"});
-
-      long startTime = System.nanoTime();
-
-      ExecutorService es = Executors.newFixedThreadPool(64);
-      CompletionService<String> ecs = new ExecutorCompletionService<>(es);
-      AtomicInteger count = new AtomicInteger(1);
-
-      ecs.submit(() -> {
-        country.populate();
-        for (Sido sido : country.getSidos()) {
-          count.incrementAndGet();
-          ecs.submit(() -> {
-            sido.populate();
-            for (Gugun gg : sido.getGuguns()) {
-              count.incrementAndGet();
-              ecs.submit(() -> {
-                gg.populate();
-                for (Dong dg : gg.getDongs()) {
-                  count.incrementAndGet();
-                  ecs.submit(() -> {
-                    dg.populate();
-                    for (Danji dj : dg.getDanjis()) {
-                      count.incrementAndGet();
-                      ecs.submit(() -> {
-                        dj.populate();
-                        return dj.getName();
-                      });
-                    }
-                    return dg.getName();
-                  });
-                }
-                return gg.getName();
-              });
-            }
-            return sido.getName();
-          });
+      ZipFile zip = null;
+      Country country = null;
+      try {
+        if (useStored) {
+          File f = new File(Country.getStoredDir(), "NeoPost2.zip");
+          if (!f.isFile()) {
+            return;
+          }
+          zip = new ZipFile(f, ZipFile.OPEN_READ);
         }
-        return "Country";
-      });
-      int i = 0;
-      while (count.decrementAndGet() >= 0) {
-        try {
-          Future<String> f = ecs.take();
-          System.out.println((++i) + " " + f.get() + " parsed.");
-        } catch (InterruptedException | ExecutionException e) {
-          e.printStackTrace();
+        country = new Country(zip);
+        country.setTargetFilters(new String[]{"서울특별시", "경기도"});
+
+        long startTime = System.nanoTime();
+
+        ExecutorService es = Executors.newFixedThreadPool(64);
+        CompletionService<String> ecs = new ExecutorCompletionService<>(es);
+        AtomicInteger count = new AtomicInteger(1);
+
+        final Country c = country;
+        ecs.submit(() -> {
+          c.populate();
+          for (Sido sido : c.getSidos()) {
+            count.incrementAndGet();
+            ecs.submit(() -> {
+              sido.populate();
+              for (Gugun gg : sido.getGuguns()) {
+                count.incrementAndGet();
+                ecs.submit(() -> {
+                  gg.populate();
+                  for (Dong dg : gg.getDongs()) {
+                    count.incrementAndGet();
+                    ecs.submit(() -> {
+                      dg.populate();
+                      for (Danji dj : dg.getDanjis()) {
+                        count.incrementAndGet();
+                        ecs.submit(() -> {
+                          dj.populate();
+                          return dj.getName();
+                        });
+                      }
+                      return dg.getName();
+                    });
+                  }
+                  return gg.getName();
+                });
+              }
+              return sido.getName();
+            });
+          }
+          return "Country";
+        });
+        int i = 0;
+        while (count.decrementAndGet() >= 0) {
+          try {
+            Future<String> f = ecs.take();
+            System.out.println((++i) + ". " + f.get() + " parsed.");
+          } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+          }
+        }
+        es.shutdown();
+        ApartmentRegistry.getInstance().sortApartments();
+        long elapsed = System.nanoTime() - startTime;
+        System.out.println(elapsed / 1000000 / 1000.f + " sec. elapsed.");
+      } catch (IOException e) {
+        e.printStackTrace();
+      } finally {
+        if (zip !=  null) {
+          try {
+            zip.close();
+          } catch (IOException e) {
+          }
+        }
+        if (country != null) {
+          Country.closeZipWrite();
         }
       }
-      es.shutdown();
-      ApartmentRegistry.getInstance().sortApartments();
-      long elapsed = System.nanoTime() - startTime;
-      System.out.println(elapsed / 1000000 / 1000.f + " sec. elapsed.");
       display.asyncExec(()->{
         setTableItemCount(ApartmentRegistry.getInstance().getApartments().size());
       });

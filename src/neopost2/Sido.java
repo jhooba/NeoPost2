@@ -44,6 +44,7 @@ public class Sido extends NodeBase implements Comparable<Sido> {
   private ArrayList<Gugun> guguns;
 
   public Sido(Country country, String name, int code) {
+    super(country.zip);
     this.country = country;
     this.name = name;
     this.code = code;
@@ -56,12 +57,7 @@ public class Sido extends NodeBase implements Comparable<Sido> {
   }
 
   @Override
-  public boolean useStored() {
-    return country.useStored();
-  }
-
-  @Override
-  protected InputStream openConnectedInputStream(Object[] args) throws IOException {
+  protected InputStream openConnectedInputStream(Object... args) throws IOException {
     HttpURLConnection con = (HttpURLConnection) new URL(SRH_PATH + GUGUN_DO).openConnection();
     con.setConnectTimeout(5000);
     con.setRequestMethod("POST");
@@ -76,9 +72,12 @@ public class Sido extends NodeBase implements Comparable<Sido> {
   }
 
   @Override
-  protected void parseContent(BufferedReader reader, Object[] args) throws IOException {
+  protected void parseContent(BufferedReader reader, Object... args) throws IOException {
     Gson gson = new GsonBuilder().create();
     NameCodeListJson list = gson.fromJson(reader, NameCodeListJson.class);
+    if (list == null) {
+      return;
+    }
     guguns.ensureCapacity(list.getJsonList().size());
     for (NameCodeJson j : list.getJsonList()) {
       guguns.add(new Gugun(this, j.getNAME(), Integer.parseInt(j.getCODE())));
@@ -86,7 +85,7 @@ public class Sido extends NodeBase implements Comparable<Sido> {
   }
 
   @Override
-  protected String getStoredFileName(Object[] args) {
+  protected String getStoredFileName(Object... args) {
     return "sd" + code;
   }
 

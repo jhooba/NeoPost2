@@ -92,13 +92,14 @@ public class Danji extends NodeBase implements Comparable<Danji> {
   private final TreeMap<Integer, Apartment> apartmentMap = new TreeMap<>();
 
   public Danji(Dong dong, String name, long code) {
+    super(dong.zip);
     this.dong = dong;
     this.name = name;
     this.code = code;
   }
 
   @Override
-  protected InputStream openConnectedInputStream(Object[] args) throws IOException {
+  protected InputStream openConnectedInputStream(Object... args) throws IOException {
     int y = (Integer)args[0];
 
     HttpURLConnection con = (HttpURLConnection) new URL(SRH_PATH + MONTHLY_DO).openConnection();
@@ -116,7 +117,7 @@ public class Danji extends NodeBase implements Comparable<Danji> {
   }
 
   @Override
-  protected void parseContent(BufferedReader reader, Object[] args) {
+  protected void parseContent(BufferedReader reader, Object... args) {
     int y = (Integer)args[0];
 
     int thisYear = Calendar.getInstance().get(Calendar.YEAR);
@@ -152,7 +153,7 @@ public class Danji extends NodeBase implements Comparable<Danji> {
   }
 
   @Override
-  protected String getStoredFileName(Object[] args) {
+  protected String getStoredFileName(Object... args) {
     int y = (Integer)args[0];
     return "dj" + code + "." + y;
   }
@@ -167,11 +168,6 @@ public class Danji extends NodeBase implements Comparable<Danji> {
       ap.sortAreas();
       ApartmentRegistry.getInstance().addApartment(ap);
     }
-  }
-
-  @Override
-  public boolean useStored() {
-    return dong.useStored();
   }
 
   public Dong getDong() {

@@ -46,6 +46,7 @@ public class Dong extends NodeBase implements Comparable<Dong> {
   private TreeMap<String, Danji> danjiMap;
 
   public Dong(Gugun gugun, String name, long dongCode) {
+    super(gugun.zip);
     this.gugun = gugun;
     this.name = name;
     this.dongCode = dongCode;
@@ -63,12 +64,7 @@ public class Dong extends NodeBase implements Comparable<Dong> {
   }
 
   @Override
-  public boolean useStored() {
-    return gugun.useStored();
-  }
-
-  @Override
-  protected InputStream openConnectedInputStream(Object[] args) throws IOException {
+  protected InputStream openConnectedInputStream(Object... args) throws IOException {
     int y = (Integer)args[0];
     int p = (Integer)args[1];
 
@@ -86,7 +82,7 @@ public class Dong extends NodeBase implements Comparable<Dong> {
   }
 
   @Override
-  protected void parseContent(BufferedReader reader, Object[] args) throws IOException {
+  protected void parseContent(BufferedReader reader, Object... args) throws IOException {
     Gson gson = new GsonBuilder().create();
     NameCodeListJson list = gson.fromJson(reader, NameCodeListJson.class);
     if (list == null) {
@@ -103,7 +99,7 @@ public class Dong extends NodeBase implements Comparable<Dong> {
   }
 
   @Override
-  protected String getStoredFileName(Object[] args) {
+  protected String getStoredFileName(Object... args) {
     int y = (Integer)args[0];
     int p = (Integer)args[1];
 
