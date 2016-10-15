@@ -7,11 +7,14 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 public class Main {
@@ -46,7 +49,7 @@ public class Main {
     qBtn.addSelectionListener(new SelectionAdapter() {
       @Override
       public void widgetSelected(SelectionEvent e) {
-        setTableItemCount(0);
+        setTableItemCount(0, null);
         query(false);
       }
     });
@@ -94,6 +97,7 @@ public class Main {
     column.setText("거래건수");
     column.setWidth(60);
 
+    DecimalFormat ukFormat = new DecimalFormat(".##");
     table.addListener(SWT.SetData, event -> {
       TableItem item = (TableItem)event.item;
       int index = table.indexOf(item);
@@ -107,11 +111,11 @@ public class Main {
       item.setText(2, dong.getName());
       item.setText(3, danji.getName());
       item.setText(4, apartment.getPyong() + "평");
-      item.setText(5, apartment.getAveragePrice() / 10000.f + "억");
+      item.setText(5, ukFormat.format(apartment.getAveragePrice() / 10000.f) + "억");
       item.setText(6, apartment.getDealCount() + "");
     });
 
-    setTableItemCount(ApartmentRegistry.getInstance().getApartments().size());
+    setTableItemCount(0, null);
     query(true);
 
     shell.open();
@@ -129,6 +133,7 @@ public class Main {
 
       ZipFile zip = null;
       Country country = null;
+      String [] queryTime = new String[1];
       try {
         if (useStored) {
           File f = new File(Country.getStoredDir(), "NeoPost2.zip");
@@ -136,6 +141,17 @@ public class Main {
             return;
           }
           zip = new ZipFile(f, ZipFile.OPEN_READ);
+          ZipEntry qte = zip.getEntry("qt");
+          if (qte != null) {
+            Reader reader = new InputStreamReader(zip.getInputStream(qte));
+            StringBuilder buffer = new StringBuilder();
+            char [] cb = new char [1024];
+            int len;
+            while ((len = reader.read(cb, 0, cb.length)) != -1) {
+              buffer.append(cb, 0, len);
+            }
+            queryTime[0] = buffer.toString();
+          }
         }
         country = new Country(zip);
         country.setTargetFilters(new String[]{"서울특별시", "경기도"});
@@ -202,89 +218,29 @@ public class Main {
           }
         }
         if (country != null) {
-          Country.closeZipWrite();
+          String zipTime = Country.closeZipWrite();
+          if (zipTime != null) {
+            queryTime[0] = zipTime;
+          }
         }
       }
       display.asyncExec(()->{
-        setTableItemCount(ApartmentRegistry.getInstance().getApartments().size());
+        setTableItemCount(ApartmentRegistry.getInstance().getApartments().size(), queryTime[0]);
       });
     });
     th.start();
   }
 
-   private static void setTableItemCount(int count) {
+   private static void setTableItemCount(int count, String queryTime) {
      table.setItemCount(count);
      int thisYear = Calendar.getInstance().get(Calendar.YEAR);
      int thisMonth = Calendar.getInstance().get(Calendar.MONTH);
-     infoLabel.setText(""+ (thisYear - 1) + "/" + (thisMonth - 1) + " ~ " + thisYear + "/" + thisMonth + " [" + count +"]건");
+     String info;
+     if (queryTime == null) {
+       info = (thisYear - 1) + "/" + (thisMonth - 1) + " ~ " + thisYear + "/" + thisMonth + " [" + count +"]건 ";
+     } else {
+       info = (thisYear - 1) + "/" + (thisMonth - 1) + " ~ " + thisYear + "/" + thisMonth + " [" + count +"]건 [" + queryTime + "]";
+     }
+     infoLabel.setText(info);
   }
-
-//    File input = new File(inputFile);
-//    BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(input)));
-//    ArrayList<Apartment> apartments = new ArrayList<>();
-//    Apartment apartment = null;
-//    String line;
-//    while ((line = reader.readLine()) != null) {
-//      line = line.trim();
-//      if (line.length() == 0) {
-//        continue;
-//      }
-//      if ("{".equals(line)) {
-//        apartment = new Apartment();
-//        apartments.add(apartment);
-//        continue;
-//      }
-//      if ("}".equals(line)) {
-//        apartment = null;
-//        continue;
-//      }
-//      if (apartment == null) {
-//        continue;
-//      }
-//      INode node = directory.ROOT;
-//      if (!apartment.hasDanjiNode()) {
-//        for (String addr : line.split(",")) {
-//          node = node.findNode(addr);
-//          if (node == null) {
-//            break;
-//          }
-//        }
-//        DanjiNode danji = (DanjiNode)node;
-//        if (danji == null) {
-//          continue;
-//        }
-//        apartment.setName(line);
-//        apartment.setDanjiNode(danji);
-//      }
-//      DanjiNode danji = apartment.getDanjiNode();
-//      if (!danji.hasFocusedArea()) {
-//        List<String> areas = new ArrayList<>();
-//        for (String area : line.split("/")) {
-//          areas.add(area);
-//        }
-//        danji.setFocusAreas(areas);
-//      }
-//    }
-//    reader.close();
-//
-//    File output = new File(input.getParentFile(), input.getName() + ".out");
-//    PrintWriter writer = new PrintWriter(new OutputStreamWriter(new FileOutputStream(output)));
-//    for (Apartment ap : apartments) {
-//      writer.println("{");
-//      writer.print("  ");
-//      writer.println(ap.getName());
-//      writer.print("  ");
-//      List<String> as = ap.getDanjiNode().getAreas();
-//      if (as.size() > 0) {
-//        for (int i = 0; i < as.size(); ++i) {
-//          writer.print(as.get(i));
-//          if (i != as.size() - 1) {
-//            writer.print(" / ");
-//          }
-//        }
-//        writer.println();
-//      }
-//      writer.println("}");
-//    }
-//    writer.close();
 }

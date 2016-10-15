@@ -1,9 +1,10 @@
 package neopost2;
 
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
@@ -13,6 +14,7 @@ import java.util.zip.ZipOutputStream;
  */
 abstract public class NodeBase implements INode {
 
+  private static final SimpleDateFormat SIMPLE_DATE_FORMAT = new SimpleDateFormat("MM/dd HH:mm:ss");
   protected final ZipFile zip;
   protected static ZipOutputStream zout = null;
 
@@ -76,13 +78,21 @@ abstract public class NodeBase implements INode {
   protected abstract void parseContent(BufferedReader reader, Object... args) throws IOException;
   protected abstract String getStoredFileName(Object... args);
 
-  public static void closeZipWrite() {
+  public static String closeZipWrite() {
     if (zout == null) {
-      return;
+      return null;
     }
     try {
+      zout.putNextEntry(new ZipEntry("qt"));
+      OutputStreamWriter w = new OutputStreamWriter(zout);
+      String queryTime = SIMPLE_DATE_FORMAT.format(new Date()).toString();
+      w.write(queryTime);
+      w.flush();
+      zout.closeEntry();
       zout.close();
+      return queryTime;
     } catch (IOException ignored) {
     }
+    return null;
   }
 }
