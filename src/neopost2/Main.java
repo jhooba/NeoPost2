@@ -12,7 +12,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.text.DecimalFormat;
-import java.util.Calendar;
+import java.util.*;
+import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipEntry;
@@ -50,7 +51,9 @@ public class Main {
     qBtn.addSelectionListener(new SelectionAdapter() {
       @Override
       public void widgetSelected(SelectionEvent e) {
-        setTableItemCount(0, null);
+        ApartmentRegistry.getInstance().clearApartments();
+        refreshTable();
+        setQueryTime(null);
         table.update();
         query(false);
       }
@@ -72,6 +75,25 @@ public class Main {
     gd.grabExcessVerticalSpace = true;
     gd.horizontalAlignment = SWT.FILL;
     filterPane.setLayoutData(gd);
+    gl = new GridLayout();
+    gl.numColumns = 2;
+    filterPane.setLayout(gl);
+
+    Text minDealCountText = new Text(filterPane, SWT.BORDER | SWT.FLAT | SWT.RIGHT);
+    minDealCountText.setText("" + ApartmentRegistry.getInstance().getMinDealCount());
+    minDealCountText.addModifyListener(event->{
+      try {
+        ApartmentRegistry.getInstance().setMinDealCount(Integer.parseInt(minDealCountText.getText()), true);
+        refreshTable();
+      } catch (NumberFormatException ignored) {
+      }
+    });
+    gd = new GridData();
+    gd.widthHint = 30;
+    minDealCountText.setLayoutData(gd);
+
+    Label l = new Label(filterPane, SWT.NONE);
+    l.setText("매매건수 이상");
 
     table = new Table(shell, SWT.VIRTUAL | SWT.FULL_SELECTION);
     table.setLayoutData(new GridData(GridData.FILL_BOTH));
@@ -96,14 +118,18 @@ public class Main {
     column.setText("평균가격");
     column.setWidth(80);
     column = new TableColumn(table, SWT.RIGHT);
-    column.setText("거래건수");
+    column.setText("매매건수");
     column.setWidth(60);
 
     DecimalFormat ukFormat = new DecimalFormat(".##");
     table.addListener(SWT.SetData, event -> {
       TableItem item = (TableItem)event.item;
       int index = table.indexOf(item);
-      Apartment apartment = ApartmentRegistry.getInstance().getApartments().get(index);
+      List<Apartment> fs = ApartmentRegistry.getInstance().getFiltered();
+      if (index >= fs.size()) {
+        return;
+      }
+      Apartment apartment = fs.get(index);
       Danji danji = apartment.getDanji();
       Dong dong = danji.getDong();
       Gugun gugun = dong.getGugun();
@@ -117,7 +143,8 @@ public class Main {
       item.setText(6, apartment.getDealCount() + "");
     });
 
-    setTableItemCount(0, null);
+    refreshTable();
+    setQueryTime(null);
     query(true);
 
     shell.open();
@@ -130,8 +157,6 @@ public class Main {
   }
 
   private static void query(boolean useStored) {
-    ApartmentRegistry.getInstance().getApartments().clear();
-
     ZipFile zip = null;
     Country country = null;
     String [] queryTime = new String[1];
@@ -225,19 +250,26 @@ public class Main {
         }
       }
     }
-    setTableItemCount(ApartmentRegistry.getInstance().getApartments().size(), queryTime[0]);
+    refreshTable();
+    setQueryTime(queryTime[0]);
   }
 
-   private static void setTableItemCount(int count, String queryTime) {
+   private static void refreshTable() {
+     table.clearAll();
+     int count = ApartmentRegistry.getInstance().getFiltered().size();
      table.setItemCount(count);
-     int thisYear = Calendar.getInstance().get(Calendar.YEAR);
-     int thisMonth = Calendar.getInstance().get(Calendar.MONTH);
-     String info;
-     if (queryTime == null) {
-       info = (thisYear - 1) + "/" + (thisMonth - 1) + " ~ " + thisYear + "/" + thisMonth + " [" + count +"]건 ";
-     } else {
-       info = (thisYear - 1) + "/" + (thisMonth - 1) + " ~ " + thisYear + "/" + thisMonth + " [" + count +"]건 [" + queryTime + "]";
-     }
-     infoLabel.setText(info);
+  }
+
+  private static void setQueryTime(String queryTime) {
+    int count = ApartmentRegistry.getInstance().getApartments().size();
+    int thisYear = Calendar.getInstance().get(Calendar.YEAR);
+    int thisMonth = Calendar.getInstance().get(Calendar.MONTH);
+    String info;
+    if (queryTime == null) {
+      info = (thisYear - 1) + "/" + (thisMonth - 1) + " ~ " + thisYear + "/" + thisMonth + " [" + count +"]건 ";
+    } else {
+      info = (thisYear - 1) + "/" + (thisMonth - 1) + " ~ " + thisYear + "/" + thisMonth + " [" + count +"]건 [" + queryTime + "]";
+    }
+    infoLabel.setText(info);
   }
 }
