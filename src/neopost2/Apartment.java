@@ -2,6 +2,7 @@ package neopost2;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -91,5 +92,22 @@ public class Apartment implements Comparable<Apartment> {
 
   public int getRentCount() {
     return rentDeals.size();
+  }
+
+  public float[] getTrimmedRentFee() {
+    int count = rentDeals.size();
+    int margin = (int)(count * 0.1f);
+    float depositSum = 0;
+    Collections.sort(rentDeals, (o1, o2) -> o1.getDepositPrice() - o2.getDepositPrice());
+    for (int i = margin; i < count - margin; ++i) {
+      depositSum += rentDeals.get(i).getDepositPrice();
+    }
+    float rentSum = 0;
+    Collections.sort(rentDeals, (o1, o2) -> o1.getRentFee() - o2.getRentFee());
+    for (int i = margin; i < count - margin; ++i) {
+      rentSum += rentDeals.get(i).getRentFee();
+    }
+    float rentRatio = depositSum == 0 ? 0 : rentSum * 12 / depositSum;
+    return new float[] { Math.round(depositSum / (count - margin * 2)), Math.round(rentSum / (count - margin * 2)), rentRatio };
   }
 }

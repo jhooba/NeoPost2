@@ -77,7 +77,7 @@ public class Main {
     gd.horizontalAlignment = SWT.FILL;
     filterPane.setLayoutData(gd);
     gl = new GridLayout();
-    gl.numColumns = 8;
+    gl.numColumns = 10;
     filterPane.setLayout(gl);
 
     Text minDealCountText = new Text(filterPane, SWT.BORDER | SWT.FLAT | SWT.RIGHT);
@@ -144,6 +144,22 @@ public class Main {
     l = new Label(filterPane, SWT.NONE);
     l.setText("임대건수 이상");
 
+    Text rentRatioText = new Text(filterPane, SWT.BORDER | SWT.FLAT | SWT.RIGHT);
+    rentRatioText.setText("" + ApartmentRegistry.getInstance().getMinRentRatio());
+    rentRatioText.addModifyListener(event->{
+      try {
+        ApartmentRegistry.getInstance().setMinRentRatio(Integer.parseInt(rentRatioText.getText()) / 100.f, true);
+        refreshTable();
+      } catch (NumberFormatException ignored) {
+      }
+    });
+    gd = new GridData();
+    gd.widthHint = 30;
+    rentRatioText.setLayoutData(gd);
+
+    l = new Label(filterPane, SWT.NONE);
+    l.setText("임대비 이상");
+
     table = new Table(shell, SWT.VIRTUAL | SWT.FULL_SELECTION);
     table.setLayoutData(new GridData(GridData.FILL_BOTH));
     table.setHeaderVisible(true);
@@ -179,6 +195,15 @@ public class Main {
     column.setText("임대료");
     column.setWidth(80);
     column = new TableColumn(table, SWT.RIGHT);
+    column.setText("80%보증금");
+    column.setWidth(80);
+    column = new TableColumn(table, SWT.RIGHT);
+    column.setText("80%임대료");
+    column.setWidth(80);
+    column = new TableColumn(table, SWT.RIGHT);
+    column.setText("임대료/보증금");
+    column.setWidth(60);
+    column = new TableColumn(table, SWT.RIGHT);
     column.setText("임대건수");
     column.setWidth(60);
 
@@ -202,11 +227,15 @@ public class Main {
       item.setText(4, apartment.getPyong() + "평");
       item.setText(5, ukFormat.format(apartment.getAverageTradePrice() / 10000.f) + "억");
       item.setText(6, ukFormat.format(apartment.getTrimmedTradePrice() / 10000.f) + "억");
-      item.setText(7, apartment.getTradeCount() + "");
+      item.setText(7, apartment.getTradeCount() + "건");
       float[] ps = apartment.getRentFee();
       item.setText(8, ukFormat.format(ps[0] / 10000.f) + "억");
       item.setText(9, (int)ps[1] + "만");
-      item.setText(10, apartment.getRentCount() + "");
+      ps = apartment.getTrimmedRentFee();
+      item.setText(10, ukFormat.format(ps[0] / 10000.f) + "억");
+      item.setText(11, (int)ps[1] + "만");
+      item.setText(12, ukFormat.format(ps[2] * 100) + "%");
+      item.setText(13, apartment.getRentCount() + "건");
     });
 
     queryTime = null;

@@ -16,6 +16,7 @@ public class ApartmentRegistry {
   private float trimmedMinPrice = 0;
   private int minPyong = 0;
   private int minRentDealCount = 0;
+  private float minRentRatio = 0;
 
   public static ApartmentRegistry getInstance() {
     return instance;
@@ -67,6 +68,9 @@ public class ApartmentRegistry {
       if (a.getRentCount() < minRentDealCount) {
         continue;
       }
+      if (a.getTrimmedRentFee()[2] < minRentRatio) {
+        continue;
+      }
       fd.add(a);
     }
     return fd;
@@ -92,7 +96,7 @@ public class ApartmentRegistry {
   }
 
   private void applyFilter() {
-    if (minTradeCount <= 0 && trimmedMinPrice <= 0 && minPyong <= 0 && minRentDealCount <= 0) {
+    if (minTradeCount <= 0 && trimmedMinPrice <= 0 && minPyong <= 0 && minRentDealCount <= 0 && minRentRatio <= 0) {
       filtered = apartments;
     } else {
       filtered = filter();
@@ -123,6 +127,21 @@ public class ApartmentRegistry {
       return;
     }
     this.minRentDealCount = minRentDealCount;
+    if (!apply) {
+      return;
+    }
+    applyFilter();
+  }
+
+  public float getMinRentRatio() {
+    return minRentRatio;
+  }
+
+  public void setMinRentRatio(float minRentRatio, boolean apply) {
+    if (this.minRentRatio == minRentRatio) {
+      return;
+    }
+    this.minRentRatio = minRentRatio;
     if (!apply) {
       return;
     }
