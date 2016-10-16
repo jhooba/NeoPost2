@@ -150,6 +150,9 @@ public class Danji extends NodeBase implements Comparable<Danji> {
         }
       }
     }
+    for (Apartment a : apartmentMap.values()) {
+      a.sortDeals();
+    }
   }
 
   @Override

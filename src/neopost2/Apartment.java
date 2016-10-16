@@ -48,31 +48,13 @@ public class Apartment implements Comparable<Apartment> {
   }
 
   public int getTrimmedPrice() {
-    if (deals.size() <= 2) {
-      return -1;
-    }
-    Deal top = null;
-    Deal bot = null;
-    for (Deal d : deals) {
-      if (top == null) {
-        top = d;
-      } else if (top.getPrice() < d.getPrice()) {
-        top = d;
-      }
-      if (bot == null) {
-        bot = d;
-      } else if (bot.getPrice() > d.getPrice()) {
-        bot = d;
-      }
-    }
+    int count = deals.size();
+    int margin = (int)(count * 0.1f);
     float sum = 0;
-    for (Deal d : deals) {
-      if (top == d || bot == d) {
-        continue;
-      }
-      sum += d.getPrice();
+    for (int i = margin; i < count - margin; ++i) {
+      sum += deals.get(i).getPrice();
     }
-    return Math.round(sum / deals.size());
+    return Math.round(sum / (count - margin * 2));
   }
 
   public int getDealCount() {
@@ -86,5 +68,9 @@ public class Apartment implements Comparable<Apartment> {
       return pyong - a.pyong;
     }
     return delta;
+  }
+
+  public void sortDeals() {
+    Collections.sort(deals);
   }
 }

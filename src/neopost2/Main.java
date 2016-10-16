@@ -23,13 +23,14 @@ public class Main {
 
   private static Display display;
   private static Shell shell;
-  private static Table table;
   private static Label infoLabel;
+  private static Table table;
+  private static String queryTime;
 
   public static void main(String[] args) throws IOException {
     display = new Display();
     shell = new Shell(display, SWT.APPLICATION_MODAL | SWT.CLOSE | SWT.MIN | SWT.MAX | SWT.RESIZE);
-    shell.setSize(1280, 720);
+    shell.setSize(1600, 900);
     shell.setLayout(new GridLayout());
     shell.setText("NeoPost2");
 
@@ -53,7 +54,7 @@ public class Main {
       public void widgetSelected(SelectionEvent e) {
         ApartmentRegistry.getInstance().clearApartments();
         refreshTable();
-        setQueryTime(null);
+        queryTime = null;
         table.update();
         query(false);
       }
@@ -76,7 +77,7 @@ public class Main {
     gd.horizontalAlignment = SWT.FILL;
     filterPane.setLayoutData(gd);
     gl = new GridLayout();
-    gl.numColumns = 2;
+    gl.numColumns = 6;
     filterPane.setLayout(gl);
 
     Text minDealCountText = new Text(filterPane, SWT.BORDER | SWT.FLAT | SWT.RIGHT);
@@ -94,6 +95,38 @@ public class Main {
 
     Label l = new Label(filterPane, SWT.NONE);
     l.setText("매매건수 이상");
+
+    Text minTrimmedPriceText = new Text(filterPane, SWT.BORDER | SWT.FLAT | SWT.RIGHT);
+    minTrimmedPriceText.setText("" + ApartmentRegistry.getInstance().getTrimmedMinPrice());
+    minTrimmedPriceText.addModifyListener(event->{
+      try {
+        ApartmentRegistry.getInstance().setTrimmedMinPrice(Float.parseFloat(minTrimmedPriceText.getText()) * 10000, true);
+        refreshTable();
+      } catch (NumberFormatException ignored) {
+      }
+    });
+    gd = new GridData();
+    gd.widthHint = 30;
+    minTrimmedPriceText.setLayoutData(gd);
+
+    l = new Label(filterPane, SWT.NONE);
+    l.setText("80%매매가 이상");
+
+    Text minPyongText = new Text(filterPane, SWT.BORDER | SWT.FLAT | SWT.RIGHT);
+    minPyongText.setText("" + ApartmentRegistry.getInstance().getMinPyong());
+    minPyongText.addModifyListener(event->{
+      try {
+        ApartmentRegistry.getInstance().setMinPyong(Integer.parseInt(minPyongText.getText()), true);
+        refreshTable();
+      } catch (NumberFormatException ignored) {
+      }
+    });
+    gd = new GridData();
+    gd.widthHint = 30;
+    minPyongText.setLayoutData(gd);
+
+    l = new Label(filterPane, SWT.NONE);
+    l.setText("전용면적 평 이상");
 
     table = new Table(shell, SWT.VIRTUAL | SWT.FULL_SELECTION);
     table.setLayoutData(new GridData(GridData.FILL_BOTH));
@@ -115,13 +148,16 @@ public class Main {
     column.setText("전용면적");
     column.setWidth(60);
     column = new TableColumn(table, SWT.RIGHT);
-    column.setText("평균가격");
+    column.setText("매매가격");
+    column.setWidth(80);
+    column = new TableColumn(table, SWT.RIGHT);
+    column.setText("80%매매가");
     column.setWidth(80);
     column = new TableColumn(table, SWT.RIGHT);
     column.setText("매매건수");
     column.setWidth(60);
 
-    DecimalFormat ukFormat = new DecimalFormat(".##");
+    DecimalFormat ukFormat = new DecimalFormat("#.##");
     table.addListener(SWT.SetData, event -> {
       TableItem item = (TableItem)event.item;
       int index = table.indexOf(item);
@@ -140,11 +176,12 @@ public class Main {
       item.setText(3, danji.getName());
       item.setText(4, apartment.getPyong() + "평");
       item.setText(5, ukFormat.format(apartment.getAveragePrice() / 10000.f) + "억");
-      item.setText(6, apartment.getDealCount() + "");
+      item.setText(6, ukFormat.format(apartment.getTrimmedPrice() / 10000.f) + "억");
+      item.setText(7, apartment.getDealCount() + "");
     });
 
+    queryTime = null;
     refreshTable();
-    setQueryTime(null);
     query(true);
 
     shell.open();
@@ -250,26 +287,25 @@ public class Main {
         }
       }
     }
+    Main.queryTime = queryTime[0];
     refreshTable();
-    setQueryTime(queryTime[0]);
   }
 
    private static void refreshTable() {
      table.clearAll();
      int count = ApartmentRegistry.getInstance().getFiltered().size();
      table.setItemCount(count);
-  }
 
-  private static void setQueryTime(String queryTime) {
-    int count = ApartmentRegistry.getInstance().getApartments().size();
-    int thisYear = Calendar.getInstance().get(Calendar.YEAR);
-    int thisMonth = Calendar.getInstance().get(Calendar.MONTH);
-    String info;
-    if (queryTime == null) {
-      info = (thisYear - 1) + "/" + (thisMonth - 1) + " ~ " + thisYear + "/" + thisMonth + " [" + count +"]건 ";
-    } else {
-      info = (thisYear - 1) + "/" + (thisMonth - 1) + " ~ " + thisYear + "/" + thisMonth + " [" + count +"]건 [" + queryTime + "]";
-    }
-    infoLabel.setText(info);
+     int totalCount = ApartmentRegistry.getInstance().getApartments().size();
+     int filteredCount = ApartmentRegistry.getInstance().getFiltered().size();
+     int thisYear = Calendar.getInstance().get(Calendar.YEAR);
+     int thisMonth = Calendar.getInstance().get(Calendar.MONTH);
+     String info;
+     if (queryTime == null) {
+       info = (thisYear - 1) + "/" + (thisMonth - 1) + " ~ " + thisYear + "/" + thisMonth + " [" + filteredCount + "/" + totalCount +"]건 ";
+     } else {
+       info = (thisYear - 1) + "/" + (thisMonth - 1) + " ~ " + thisYear + "/" + thisMonth + " [" + filteredCount + "/" + totalCount +"]건 [" + queryTime + "]";
+     }
+     infoLabel.setText(info);
   }
 }

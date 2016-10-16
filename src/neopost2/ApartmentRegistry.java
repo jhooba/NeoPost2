@@ -13,6 +13,8 @@ public class ApartmentRegistry {
   private List<Apartment> syncApartments = Collections.synchronizedList(apartments);
   private int minDealCount = 1;
   private List<Apartment> filtered = apartments;
+  private float trimmedMinPrice = 0;
+  private int minPyong = 0;
 
   public static ApartmentRegistry getInstance() {
     return instance;
@@ -46,17 +48,19 @@ public class ApartmentRegistry {
     if (!apply) {
       return;
     }
-    if (minDealCount <= 1) {
-      filtered = apartments;
-    } else {
-      filtered = filter();
-    }
+    applyFilter();
   }
 
   private List<Apartment> filter() {
-    List<Apartment> fd = new ArrayList<Apartment>();
+    List<Apartment> fd = new ArrayList<>();
     for (Apartment a : apartments) {
       if (a.getDealCount() < minDealCount) {
+        continue;
+      }
+      if (a.getTrimmedPrice() < trimmedMinPrice) {
+        continue;
+      }
+      if (a.getPyong() < minPyong) {
         continue;
       }
       fd.add(a);
@@ -66,5 +70,43 @@ public class ApartmentRegistry {
 
   public int getMinDealCount() {
     return minDealCount;
+  }
+
+  public float getTrimmedMinPrice() {
+    return trimmedMinPrice;
+  }
+
+  public void setTrimmedMinPrice(float minPrice, boolean apply) {
+    if (this.trimmedMinPrice == minPrice) {
+      return;
+    }
+    this.trimmedMinPrice = minPrice;
+    if (!apply) {
+      return;
+    }
+    applyFilter();
+  }
+
+  private void applyFilter() {
+    if (minDealCount <= 1 && trimmedMinPrice <= 0 && minPyong <= 0) {
+      filtered = apartments;
+    } else {
+      filtered = filter();
+    }
+  }
+
+  public int getMinPyong() {
+    return minPyong;
+  }
+
+  public void setMinPyong(int minPyong, boolean apply) {
+    if (this.minPyong == minPyong) {
+      return;
+    }
+    this.minPyong = minPyong;
+    if (!apply) {
+      return;
+    }
+    applyFilter();
   }
 }
