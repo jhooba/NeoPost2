@@ -77,14 +77,14 @@ public class Main {
     gd.horizontalAlignment = SWT.FILL;
     filterPane.setLayoutData(gd);
     gl = new GridLayout();
-    gl.numColumns = 6;
+    gl.numColumns = 8;
     filterPane.setLayout(gl);
 
     Text minDealCountText = new Text(filterPane, SWT.BORDER | SWT.FLAT | SWT.RIGHT);
-    minDealCountText.setText("" + ApartmentRegistry.getInstance().getMinDealCount());
+    minDealCountText.setText("" + ApartmentRegistry.getInstance().getMinTradeCount());
     minDealCountText.addModifyListener(event->{
       try {
-        ApartmentRegistry.getInstance().setMinDealCount(Integer.parseInt(minDealCountText.getText()), true);
+        ApartmentRegistry.getInstance().setMinTradeCount(Integer.parseInt(minDealCountText.getText()), true);
         refreshTable();
       } catch (NumberFormatException ignored) {
       }
@@ -128,6 +128,22 @@ public class Main {
     l = new Label(filterPane, SWT.NONE);
     l.setText("전용면적 평 이상");
 
+    Text rentDealCountText = new Text(filterPane, SWT.BORDER | SWT.FLAT | SWT.RIGHT);
+    rentDealCountText.setText("" + ApartmentRegistry.getInstance().getMinRentDealCount());
+    rentDealCountText.addModifyListener(event->{
+      try {
+        ApartmentRegistry.getInstance().setMinRentDealCount(Integer.parseInt(rentDealCountText.getText()), true);
+        refreshTable();
+      } catch (NumberFormatException ignored) {
+      }
+    });
+    gd = new GridData();
+    gd.widthHint = 30;
+    rentDealCountText.setLayoutData(gd);
+
+    l = new Label(filterPane, SWT.NONE);
+    l.setText("임대건수 이상");
+
     table = new Table(shell, SWT.VIRTUAL | SWT.FULL_SELECTION);
     table.setLayoutData(new GridData(GridData.FILL_BOTH));
     table.setHeaderVisible(true);
@@ -156,6 +172,15 @@ public class Main {
     column = new TableColumn(table, SWT.RIGHT);
     column.setText("매매건수");
     column.setWidth(60);
+    column = new TableColumn(table, SWT.RIGHT);
+    column.setText("임대보증금");
+    column.setWidth(80);
+    column = new TableColumn(table, SWT.RIGHT);
+    column.setText("임대료");
+    column.setWidth(80);
+    column = new TableColumn(table, SWT.RIGHT);
+    column.setText("임대건수");
+    column.setWidth(60);
 
     DecimalFormat ukFormat = new DecimalFormat("#.##");
     table.addListener(SWT.SetData, event -> {
@@ -175,9 +200,13 @@ public class Main {
       item.setText(2, dong.getName());
       item.setText(3, danji.getName());
       item.setText(4, apartment.getPyong() + "평");
-      item.setText(5, ukFormat.format(apartment.getAveragePrice() / 10000.f) + "억");
-      item.setText(6, ukFormat.format(apartment.getTrimmedPrice() / 10000.f) + "억");
-      item.setText(7, apartment.getDealCount() + "");
+      item.setText(5, ukFormat.format(apartment.getAverageTradePrice() / 10000.f) + "억");
+      item.setText(6, ukFormat.format(apartment.getTrimmedTradePrice() / 10000.f) + "억");
+      item.setText(7, apartment.getTradeCount() + "");
+      float[] ps = apartment.getRentFee();
+      item.setText(8, ukFormat.format(ps[0] / 10000.f) + "억");
+      item.setText(9, (int)ps[1] + "만");
+      item.setText(10, apartment.getRentCount() + "");
     });
 
     queryTime = null;

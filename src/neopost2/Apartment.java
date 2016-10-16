@@ -11,7 +11,8 @@ public class Apartment implements Comparable<Apartment> {
   private final Danji danji;
   private final int pyong;
   private List<Area> areas = new ArrayList<>();
-  private List<Deal> deals = new ArrayList<>();
+  private List<TradeDeal> tradeDeals = new ArrayList<>();
+  private List<RentDeal> rentDeals = new ArrayList<>();
 
   public Apartment(Danji danji, Area a) {
     this.danji = danji;
@@ -27,8 +28,12 @@ public class Apartment implements Comparable<Apartment> {
     Collections.sort(areas);
   }
 
-  public void addDeal(Deal deal) {
-    deals.add(deal);
+  public void addTradeDeal(TradeDeal deal) {
+    tradeDeals.add(deal);
+  }
+
+  public void addRentDeal(RentDeal deal) {
+    rentDeals.add(deal);
   }
 
   public Danji getDanji() {
@@ -39,26 +44,26 @@ public class Apartment implements Comparable<Apartment> {
     return pyong;
   }
 
-  public int getAveragePrice() {
+  public int getAverageTradePrice() {
     float sum = 0;
-    for (Deal d : deals) {
+    for (TradeDeal d : tradeDeals) {
       sum += d.getPrice();
     }
-    return Math.round(sum / deals.size());
+    return Math.round(sum / tradeDeals.size());
   }
 
-  public int getTrimmedPrice() {
-    int count = deals.size();
+  public int getTrimmedTradePrice() {
+    int count = tradeDeals.size();
     int margin = (int)(count * 0.1f);
     float sum = 0;
     for (int i = margin; i < count - margin; ++i) {
-      sum += deals.get(i).getPrice();
+      sum += tradeDeals.get(i).getPrice();
     }
     return Math.round(sum / (count - margin * 2));
   }
 
-  public int getDealCount() {
-    return deals.size();
+  public int getTradeCount() {
+    return tradeDeals.size();
   }
 
   @Override
@@ -71,6 +76,20 @@ public class Apartment implements Comparable<Apartment> {
   }
 
   public void sortDeals() {
-    Collections.sort(deals);
+    Collections.sort(tradeDeals);
+  }
+
+  public float[] getRentFee() {
+    float depositSum = 0;
+    float rentSum = 0;
+    for (RentDeal d : rentDeals) {
+      depositSum += d.getDepositPrice();
+      rentSum += d.getRentFee();
+    }
+    return new float[] { Math.round(depositSum / rentDeals.size()), Math.round(rentSum / rentDeals.size()) };
+  }
+
+  public int getRentCount() {
+    return rentDeals.size();
   }
 }

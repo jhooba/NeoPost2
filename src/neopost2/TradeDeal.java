@@ -3,10 +3,10 @@ package neopost2;
 /**
  * Created by jhooba on 2016-09-19.
  */
-public class Deal implements Comparable<Deal> {
+public class TradeDeal implements Comparable<TradeDeal> {
   private final int price;
 
-  public Deal(int price) {
+  public TradeDeal(int price) {
     this.price = price;
   }
 
@@ -15,7 +15,7 @@ public class Deal implements Comparable<Deal> {
   }
 
   @Override
-  public int compareTo(Deal o) {
+  public int compareTo(TradeDeal o) {
     return price - o.price;
   }
 }

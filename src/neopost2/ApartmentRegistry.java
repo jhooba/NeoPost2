@@ -11,10 +11,11 @@ public class ApartmentRegistry {
   private static final ApartmentRegistry instance = new ApartmentRegistry();
   private List<Apartment> apartments = new ArrayList<>();
   private List<Apartment> syncApartments = Collections.synchronizedList(apartments);
-  private int minDealCount = 1;
+  private int minTradeCount = 0;
   private List<Apartment> filtered = apartments;
   private float trimmedMinPrice = 0;
   private int minPyong = 0;
+  private int minRentDealCount = 0;
 
   public static ApartmentRegistry getInstance() {
     return instance;
@@ -40,11 +41,11 @@ public class ApartmentRegistry {
     apartments.clear();
   }
 
-  public void setMinDealCount(int minDealCount, boolean apply) {
-    if (this.minDealCount == minDealCount) {
+  public void setMinTradeCount(int minTradeCount, boolean apply) {
+    if (this.minTradeCount == minTradeCount) {
       return;
     }
-    this.minDealCount = minDealCount;
+    this.minTradeCount = minTradeCount;
     if (!apply) {
       return;
     }
@@ -54,13 +55,16 @@ public class ApartmentRegistry {
   private List<Apartment> filter() {
     List<Apartment> fd = new ArrayList<>();
     for (Apartment a : apartments) {
-      if (a.getDealCount() < minDealCount) {
+      if (a.getTradeCount() < minTradeCount) {
         continue;
       }
-      if (a.getTrimmedPrice() < trimmedMinPrice) {
+      if (a.getTrimmedTradePrice() < trimmedMinPrice) {
         continue;
       }
       if (a.getPyong() < minPyong) {
+        continue;
+      }
+      if (a.getRentCount() < minRentDealCount) {
         continue;
       }
       fd.add(a);
@@ -68,8 +72,8 @@ public class ApartmentRegistry {
     return fd;
   }
 
-  public int getMinDealCount() {
-    return minDealCount;
+  public int getMinTradeCount() {
+    return minTradeCount;
   }
 
   public float getTrimmedMinPrice() {
@@ -88,7 +92,7 @@ public class ApartmentRegistry {
   }
 
   private void applyFilter() {
-    if (minDealCount <= 1 && trimmedMinPrice <= 0 && minPyong <= 0) {
+    if (minTradeCount <= 0 && trimmedMinPrice <= 0 && minPyong <= 0 && minRentDealCount <= 0) {
       filtered = apartments;
     } else {
       filtered = filter();
@@ -104,6 +108,21 @@ public class ApartmentRegistry {
       return;
     }
     this.minPyong = minPyong;
+    if (!apply) {
+      return;
+    }
+    applyFilter();
+  }
+
+  public int getMinRentDealCount() {
+    return minRentDealCount;
+  }
+
+  public void setMinRentDealCount(int minRentDealCount, boolean apply) {
+    if (this.minRentDealCount == minRentDealCount) {
+      return;
+    }
+    this.minRentDealCount = minRentDealCount;
     if (!apply) {
       return;
     }

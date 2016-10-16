@@ -13,7 +13,7 @@ import java.util.*;
  * Created by jhooba on 2016-09-18.
  */
 public class Danji extends NodeBase implements Comparable<Danji> {
-  private static final String MONTHLY_POST_STR = "menuGubun=A&houseType=1&gugunCode=%d&danjiCode=%d&srhYear=%d";
+  private static final String MONTHLY_POST_STR = "menuGubun=A&houseType=%d&gugunCode=%d&danjiCode=%d&srhYear=%d";
 
   private static class DealObj {
     private String BLDG_AREA;
@@ -25,6 +25,7 @@ public class Danji extends NodeBase implements Comparable<Danji> {
 //    private String BUBN;  // ?
 //    private String BLDG_CD;  // 단지 코드
     private String BUILD_YEAR;
+    private String RENT_AMT;
     private String SUM_AMT;
 
     public String getBLDG_AREA() {
@@ -37,6 +38,10 @@ public class Danji extends NodeBase implements Comparable<Danji> {
 
     public String getBUILD_YEAR() {
       return BUILD_YEAR;
+    }
+
+    public String getRENT_AMT() {
+      return RENT_AMT;
     }
 
     public String getSUM_AMT() {
@@ -100,7 +105,8 @@ public class Danji extends NodeBase implements Comparable<Danji> {
 
   @Override
   protected InputStream openConnectedInputStream(Object... args) throws IOException {
-    int y = (Integer)args[0];
+    int type = (Integer)args[0];
+    int y = (Integer)args[1];
 
     HttpURLConnection con = (HttpURLConnection) new URL(SRH_PATH + MONTHLY_DO).openConnection();
     con.setConnectTimeout(5000);
@@ -111,14 +117,15 @@ public class Danji extends NodeBase implements Comparable<Danji> {
     con.setUseCaches(false);
     con.setDefaultUseCaches(false);
     OutputStreamWriter out = new OutputStreamWriter(con.getOutputStream());
-    out.write(String.format(MONTHLY_POST_STR, dong.getGugun().getCode(), code, y));
+    out.write(String.format(MONTHLY_POST_STR, type, dong.getGugun().getCode(), code, y));
     out.close();
     return con.getInputStream();
   }
 
   @Override
   protected void parseContent(BufferedReader reader, Object... args) {
-    int y = (Integer)args[0];
+    int type = (Integer)args[0];
+    int y = (Integer)args[1];
 
     int thisYear = Calendar.getInstance().get(Calendar.YEAR);
     int thisMonth = Calendar.getInstance().get(Calendar.MONTH);
@@ -146,29 +153,35 @@ public class Danji extends NodeBase implements Comparable<Danji> {
           if (buildYear == -1) {
             buildYear = Integer.parseInt(dl.getBUILD_YEAR());
           }
-          apartment.addDeal(new Deal(Integer.parseInt(dl.getSUM_AMT().replaceAll(",", ""))));
+          if (type == 1) {
+            apartment.addTradeDeal(new TradeDeal(Integer.parseInt(dl.getSUM_AMT().replaceAll(",", ""))));
+          } else {
+            apartment.addRentDeal(
+                new RentDeal(Integer.parseInt(dl.getSUM_AMT().replaceAll(",", "")),
+                    Integer.parseInt(dl.getRENT_AMT().replaceAll(",", ""))));
+          }
         }
       }
-    }
-    for (Apartment a : apartmentMap.values()) {
-      a.sortDeals();
     }
   }
 
   @Override
   protected String getStoredFileName(Object... args) {
-    int y = (Integer)args[0];
-    return "dj" + code + "." + y;
+    int type = (Integer)args[0];
+    int y = (Integer)args[1];
+    return "dj" + code + "." + type + "." + y;
   }
 
   @Override
   public void populate() {
     int thisYear = Calendar.getInstance().get(Calendar.YEAR);
     for (int y = thisYear - 1; y <= thisYear; ++y) {
-      populateSub(y);
+      populateSub(1, y);
+      populateSub(2, y);
     }
     for (Apartment ap : apartmentMap.values()) {
       ap.sortAreas();
+      ap.sortDeals();
       ApartmentRegistry.getInstance().addApartment(ap);
     }
   }
