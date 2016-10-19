@@ -87,7 +87,15 @@ public class Apartment implements Comparable<Apartment> {
       depositSum += d.getDepositPrice();
       rentSum += d.getRentFee();
     }
-    return new float[] { Math.round(depositSum / rentDeals.size()), Math.round(rentSum / rentDeals.size()) };
+    float rentRatio = depositSum == 0 ? 0 : rentSum * 12 / depositSum;
+    float interest = ApartmentRegistry.getInstance().getInterest() / 100;
+    float conversedDeposit = (rentSum * 12 / interest + depositSum) / rentDeals.size();
+    float depositRatio = conversedDeposit /  getAverageTradePrice();
+    return new float[] { Math.round(depositSum / rentDeals.size()),
+        Math.round(rentSum / rentDeals.size()),
+        rentRatio,
+        depositRatio
+    };
   }
 
   public int getRentCount() {
@@ -108,6 +116,13 @@ public class Apartment implements Comparable<Apartment> {
       rentSum += rentDeals.get(i).getRentFee();
     }
     float rentRatio = depositSum == 0 ? 0 : rentSum * 12 / depositSum;
-    return new float[] { Math.round(depositSum / (count - margin * 2)), Math.round(rentSum / (count - margin * 2)), rentRatio };
+    float interest = ApartmentRegistry.getInstance().getInterest() / 100;
+    float conversedDeposit = (rentSum * 12 / interest + depositSum) / (count - margin * 2);
+    float depositRatio = conversedDeposit /  getTrimmedTradePrice();
+    return new float[] { Math.round(depositSum / (count - margin * 2)),
+        Math.round(rentSum / (count - margin * 2)),
+        rentRatio,
+        depositRatio
+    };
   }
 }

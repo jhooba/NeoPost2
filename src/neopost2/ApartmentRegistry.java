@@ -3,6 +3,7 @@ package neopost2;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 
 /**
  * Created by jhooba on 2016-09-19.
@@ -17,6 +18,7 @@ public class ApartmentRegistry {
   private int minPyong = 0;
   private int minRentDealCount = 0;
   private float minRentRatio = 0;
+  private float interest;
 
   public static ApartmentRegistry getInstance() {
     return instance;
@@ -50,7 +52,7 @@ public class ApartmentRegistry {
     if (!apply) {
       return;
     }
-    applyFilter();
+    applyFilters();
   }
 
   private List<Apartment> filter() {
@@ -92,10 +94,10 @@ public class ApartmentRegistry {
     if (!apply) {
       return;
     }
-    applyFilter();
+    applyFilters();
   }
 
-  private void applyFilter() {
+  public void applyFilters() {
     if (minTradeCount <= 0 && trimmedMinPrice <= 0 && minPyong <= 0 && minRentDealCount <= 0 && minRentRatio <= 0) {
       filtered = apartments;
     } else {
@@ -115,7 +117,7 @@ public class ApartmentRegistry {
     if (!apply) {
       return;
     }
-    applyFilter();
+    applyFilters();
   }
 
   public int getMinRentDealCount() {
@@ -130,7 +132,7 @@ public class ApartmentRegistry {
     if (!apply) {
       return;
     }
-    applyFilter();
+    applyFilters();
   }
 
   public float getMinRentRatio() {
@@ -145,6 +147,47 @@ public class ApartmentRegistry {
     if (!apply) {
       return;
     }
-    applyFilter();
+    applyFilters();
+  }
+
+  public void loadFilters(Properties props) {
+    String str = props.getProperty("MinTradeCount", "0");
+    int i = Integer.parseInt(str);
+    setMinTradeCount(i, false);
+    str = props.getProperty("TrimmedMinPrice", "0");
+    float f = Float.parseFloat(str);
+    setTrimmedMinPrice(f, false);
+    str = props.getProperty("MinPyong", "0");
+    i = Integer.parseInt(str);
+    setMinPyong(i, false);
+    str = props.getProperty("MinRentDealCount", "0");
+    i = Integer.parseInt(str);
+    setMinRentDealCount(i, false);
+    str = props.getProperty("MinRentRatio", "0");
+    f = Float.parseFloat(str);
+    setMinRentRatio(f, false);
+    str = props.getProperty("Interest", "2.23");
+    f = Float.parseFloat(str);
+    setInterest(f);
+  }
+
+  public void storeFilters(Properties props) {
+    props.setProperty("MinTradeCount", "" + getMinTradeCount());
+    props.setProperty("TrimmedMinPrice", "" + getTrimmedMinPrice());
+    props.setProperty("MinPyong", "" + getMinPyong());
+    props.setProperty("MinRentDealCount", "" + getMinRentDealCount());
+    props.setProperty("MinRentRatio", "" + getMinRentRatio());
+    props.setProperty("Interest", "" + getInterest());
+  }
+
+  public void setInterest(float interest) {
+    if (this.interest == interest) {
+      return;
+    }
+    this.interest = interest;
+  }
+
+  public float getInterest() {
+    return interest;
   }
 }

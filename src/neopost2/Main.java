@@ -7,10 +7,7 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.*;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
+import java.io.*;
 import java.text.DecimalFormat;
 import java.util.*;
 import java.util.List;
@@ -21,16 +18,22 @@ import java.util.zip.ZipFile;
 
 public class Main {
 
-  private static Display display;
-  private static Shell shell;
   private static Label infoLabel;
   private static Table table;
   private static String queryTime;
+  private static Properties props;
 
   public static void main(String[] args) throws IOException {
-    display = new Display();
-    shell = new Shell(display, SWT.APPLICATION_MODAL | SWT.CLOSE | SWT.MIN | SWT.MAX | SWT.RESIZE);
-    shell.setSize(1600, 900);
+    props = new Properties();
+    File propFile = new File(Country.getStoredDir(), "dialog");
+    if (propFile.isFile()) {
+      props.loadFromXML(new FileInputStream(propFile));
+    }
+    ApartmentRegistry.getInstance().loadFilters(props);
+
+    Display display = new Display();
+    Shell shell = new Shell(display, SWT.APPLICATION_MODAL | SWT.CLOSE | SWT.MIN | SWT.MAX | SWT.RESIZE);
+    shell.setSize(1920, 1080);
     shell.setLayout(new GridLayout());
     shell.setText("NeoPost2");
 
@@ -77,8 +80,24 @@ public class Main {
     gd.horizontalAlignment = SWT.FILL;
     filterPane.setLayoutData(gd);
     gl = new GridLayout();
-    gl.numColumns = 10;
+    gl.numColumns = 12;
     filterPane.setLayout(gl);
+
+    Text interestText = new Text(filterPane, SWT.BORDER | SWT.FLAT | SWT.RIGHT);
+    interestText.setText("" + ApartmentRegistry.getInstance().getInterest());
+    interestText.addModifyListener(event->{
+      try {
+        ApartmentRegistry.getInstance().setInterest(Float.parseFloat(interestText.getText()));
+        refreshTable();
+      } catch (NumberFormatException ignored) {
+      }
+    });
+    gd = new GridData();
+    gd.widthHint = 30;
+    interestText.setLayoutData(gd);
+
+    Label l = new Label(filterPane, SWT.NONE);
+    l.setText("이율");
 
     Text minDealCountText = new Text(filterPane, SWT.BORDER | SWT.FLAT | SWT.RIGHT);
     minDealCountText.setText("" + ApartmentRegistry.getInstance().getMinTradeCount());
@@ -93,11 +112,11 @@ public class Main {
     gd.widthHint = 30;
     minDealCountText.setLayoutData(gd);
 
-    Label l = new Label(filterPane, SWT.NONE);
+    l = new Label(filterPane, SWT.NONE);
     l.setText("매매건수 이상");
 
     Text minTrimmedPriceText = new Text(filterPane, SWT.BORDER | SWT.FLAT | SWT.RIGHT);
-    minTrimmedPriceText.setText("" + ApartmentRegistry.getInstance().getTrimmedMinPrice());
+    minTrimmedPriceText.setText("" + ApartmentRegistry.getInstance().getTrimmedMinPrice() / 10000);
     minTrimmedPriceText.addModifyListener(event->{
       try {
         ApartmentRegistry.getInstance().setTrimmedMinPrice(Float.parseFloat(minTrimmedPriceText.getText()) * 10000, true);
@@ -110,7 +129,7 @@ public class Main {
     minTrimmedPriceText.setLayoutData(gd);
 
     l = new Label(filterPane, SWT.NONE);
-    l.setText("80%매매가 이상");
+    l.setText("매매가(80%) 이상");
 
     Text minPyongText = new Text(filterPane, SWT.BORDER | SWT.FLAT | SWT.RIGHT);
     minPyongText.setText("" + ApartmentRegistry.getInstance().getMinPyong());
@@ -126,7 +145,7 @@ public class Main {
     minPyongText.setLayoutData(gd);
 
     l = new Label(filterPane, SWT.NONE);
-    l.setText("전용면적 평 이상");
+    l.setText("전용면적 이상");
 
     Text rentDealCountText = new Text(filterPane, SWT.BORDER | SWT.FLAT | SWT.RIGHT);
     rentDealCountText.setText("" + ApartmentRegistry.getInstance().getMinRentDealCount());
@@ -145,7 +164,7 @@ public class Main {
     l.setText("임대건수 이상");
 
     Text rentRatioText = new Text(filterPane, SWT.BORDER | SWT.FLAT | SWT.RIGHT);
-    rentRatioText.setText("" + ApartmentRegistry.getInstance().getMinRentRatio());
+    rentRatioText.setText("" + ApartmentRegistry.getInstance().getMinRentRatio() * 100.f);
     rentRatioText.addModifyListener(event->{
       try {
         ApartmentRegistry.getInstance().setMinRentRatio(Integer.parseInt(rentRatioText.getText()) / 100.f, true);
@@ -158,7 +177,7 @@ public class Main {
     rentRatioText.setLayoutData(gd);
 
     l = new Label(filterPane, SWT.NONE);
-    l.setText("임대비 이상");
+    l.setText("80%연임대/보증금 이상");
 
     table = new Table(shell, SWT.VIRTUAL | SWT.FULL_SELECTION);
     table.setLayoutData(new GridData(GridData.FILL_BOTH));
@@ -180,7 +199,7 @@ public class Main {
     column.setText("전용면적");
     column.setWidth(60);
     column = new TableColumn(table, SWT.RIGHT);
-    column.setText("매매가격");
+    column.setText("평균매매가");
     column.setWidth(80);
     column = new TableColumn(table, SWT.RIGHT);
     column.setText("80%매매가");
@@ -189,23 +208,32 @@ public class Main {
     column.setText("매매건수");
     column.setWidth(60);
     column = new TableColumn(table, SWT.RIGHT);
-    column.setText("임대보증금");
-    column.setWidth(80);
+    column.setText("평균임대보증금");
+    column.setWidth(100);
     column = new TableColumn(table, SWT.RIGHT);
-    column.setText("임대료");
-    column.setWidth(80);
+    column.setText("80%임대보증금");
+    column.setWidth(100);
     column = new TableColumn(table, SWT.RIGHT);
-    column.setText("80%보증금");
-    column.setWidth(80);
+    column.setText("평균월임대료");
+    column.setWidth(90);
     column = new TableColumn(table, SWT.RIGHT);
-    column.setText("80%임대료");
-    column.setWidth(80);
-    column = new TableColumn(table, SWT.RIGHT);
-    column.setText("임대료/보증금");
-    column.setWidth(60);
+    column.setText("80%월임대료");
+    column.setWidth(90);
     column = new TableColumn(table, SWT.RIGHT);
     column.setText("임대건수");
     column.setWidth(60);
+    column = new TableColumn(table, SWT.RIGHT);
+    column.setText("평균연임대/보증금");
+    column.setWidth(115);
+    column = new TableColumn(table, SWT.RIGHT);
+    column.setText("80%연임대/보증금");
+    column.setWidth(115);
+    column = new TableColumn(table, SWT.RIGHT);
+    column.setText("평균환산보증금/매매가");
+    column.setWidth(140);
+    column = new TableColumn(table, SWT.RIGHT);
+    column.setText("80%환산보증금/매매가");
+    column.setWidth(140);
 
     DecimalFormat ukFormat = new DecimalFormat("#.##");
     table.addListener(SWT.SetData, event -> {
@@ -228,14 +256,17 @@ public class Main {
       item.setText(5, ukFormat.format(apartment.getAverageTradePrice() / 10000.f) + "억");
       item.setText(6, ukFormat.format(apartment.getTrimmedTradePrice() / 10000.f) + "억");
       item.setText(7, apartment.getTradeCount() + "건");
-      float[] ps = apartment.getRentFee();
-      item.setText(8, ukFormat.format(ps[0] / 10000.f) + "억");
-      item.setText(9, (int)ps[1] + "만");
-      ps = apartment.getTrimmedRentFee();
-      item.setText(10, ukFormat.format(ps[0] / 10000.f) + "억");
-      item.setText(11, (int)ps[1] + "만");
-      item.setText(12, ukFormat.format(ps[2] * 100) + "%");
-      item.setText(13, apartment.getRentCount() + "건");
+      float[] rents = apartment.getRentFee();
+      float[] trimmedRents = apartment.getTrimmedRentFee();
+      item.setText(8, ukFormat.format(rents[0] / 10000.f) + "억");
+      item.setText(9, ukFormat.format(trimmedRents[0] / 10000.f) + "억");
+      item.setText(10, (int)rents[1] + "만");
+      item.setText(11, (int)trimmedRents[1] + "만");
+      item.setText(12, apartment.getRentCount() + "건");
+      item.setText(13, ukFormat.format(rents[2] * 100) + "%");
+      item.setText(14, ukFormat.format(trimmedRents[2] * 100) + "%");
+      item.setText(15, ukFormat.format(rents[3] * 100) + "%");
+      item.setText(16, ukFormat.format(trimmedRents[3] * 100) + "%");
     });
 
     queryTime = null;
@@ -249,6 +280,9 @@ public class Main {
       }
     }
     display.dispose();
+
+    ApartmentRegistry.getInstance().storeFilters(props);
+    props.storeToXML(new FileOutputStream(propFile), "");
   }
 
   private static void query(boolean useStored) {
@@ -327,6 +361,7 @@ public class Main {
       }
       es.shutdown();
       ApartmentRegistry.getInstance().sortApartments();
+      ApartmentRegistry.getInstance().applyFilters();
       long elapsed = System.nanoTime() - startTime;
       System.out.println(elapsed / 1000000 / 1000.f + " sec. elapsed.");
     } catch (IOException e) {
