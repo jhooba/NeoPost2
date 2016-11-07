@@ -2,7 +2,6 @@ package neopost2;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -80,49 +79,51 @@ public class Apartment implements Comparable<Apartment> {
     Collections.sort(tradeDeals);
   }
 
-  public float[] getRentFee() {
-    float depositSum = 0;
-    float rentSum = 0;
+  public RentMetric getRentMetric() {
+    int depositSum = 0;
+    int feeSum = 0;
     for (RentDeal d : rentDeals) {
       depositSum += d.getDepositPrice();
-      rentSum += d.getRentFee();
+      feeSum += d.getRentFee();
     }
-    float rentRatio = depositSum == 0 ? 0 : rentSum * 12 / depositSum;
-    float interest = ApartmentRegistry.getInstance().getInterest() / 100;
-    float conversedDeposit = (rentSum * 12 / interest + depositSum) / rentDeals.size();
-    float depositRatio = conversedDeposit /  getAverageTradePrice();
-    return new float[] { Math.round(depositSum / rentDeals.size()),
-        Math.round(rentSum / rentDeals.size()),
-        rentRatio,
-        depositRatio
-    };
+    float feeOverDeposit = depositSum == 0 ? 0 : feeSum * 12.f / depositSum;
+    float interest = ApartmentRegistry.getInstance().getInterest() / 100.f;
+    float conversedAverageDeposit = (feeSum * 12.f / interest + depositSum) / rentDeals.size();
+    float depositOverPrice = conversedAverageDeposit /  getAverageTradePrice();
+    return new RentMetric(depositSum / rentDeals.size(),
+            feeSum / rentDeals.size(),
+            feeOverDeposit,
+            depositOverPrice);
   }
 
   public int getRentCount() {
     return rentDeals.size();
   }
 
-  public float[] getTrimmedRentFee() {
+  public RentMetric getTrimmedRentMetric() {
     int count = rentDeals.size();
-    int margin = (int)(count * 0.1f);
-    float depositSum = 0;
+    int margin = Math.round(count * 0.1f);
+    if (margin == 0) {
+      return getRentMetric();
+    }
+    int depositSum = 0;
     Collections.sort(rentDeals, (o1, o2) -> o1.getDepositPrice() - o2.getDepositPrice());
     for (int i = margin; i < count - margin; ++i) {
       depositSum += rentDeals.get(i).getDepositPrice();
     }
-    float rentSum = 0;
+    int feeSum = 0;
     Collections.sort(rentDeals, (o1, o2) -> o1.getRentFee() - o2.getRentFee());
     for (int i = margin; i < count - margin; ++i) {
-      rentSum += rentDeals.get(i).getRentFee();
+      feeSum += rentDeals.get(i).getRentFee();
     }
-    float rentRatio = depositSum == 0 ? 0 : rentSum * 12 / depositSum;
-    float interest = ApartmentRegistry.getInstance().getInterest() / 100;
-    float conversedDeposit = (rentSum * 12 / interest + depositSum) / (count - margin * 2);
-    float depositRatio = conversedDeposit /  getTrimmedTradePrice();
-    return new float[] { Math.round(depositSum / (count - margin * 2)),
-        Math.round(rentSum / (count - margin * 2)),
-        rentRatio,
-        depositRatio
-    };
+    int sampleCount = count - margin * 2;
+    float feeOverDeposit = depositSum == 0 ? 0 : feeSum * 12.f / depositSum;
+    float interest = ApartmentRegistry.getInstance().getInterest() / 100.f;
+    float conversedAverageDeposit = (feeSum * 12.f / interest + depositSum) / sampleCount;
+    float depositOverPrice = conversedAverageDeposit /  getTrimmedTradePrice();
+    return new RentMetric(depositSum / sampleCount,
+            feeSum / sampleCount,
+            feeOverDeposit,
+            depositOverPrice);
   }
 }

@@ -44,6 +44,7 @@ public class Main {
     headerPane.setLayoutData(gd);
     GridLayout gl = new GridLayout();
     gl.numColumns = 2;
+    gl.horizontalSpacing = 0;
     headerPane.setLayout(gl);
 
     infoLabel =  new Label(headerPane, SWT.NONE);
@@ -80,7 +81,7 @@ public class Main {
     gd.horizontalAlignment = SWT.FILL;
     filterPane.setLayoutData(gd);
     gl = new GridLayout();
-    gl.numColumns = 12;
+    gl.numColumns = 16;
     filterPane.setLayout(gl);
 
     Text interestText = new Text(filterPane, SWT.BORDER | SWT.FLAT | SWT.RIGHT);
@@ -97,7 +98,7 @@ public class Main {
     interestText.setLayoutData(gd);
 
     Label l = new Label(filterPane, SWT.NONE);
-    l.setText("이율");
+    l.setText("[%]이율");
 
     Text minDealCountText = new Text(filterPane, SWT.BORDER | SWT.FLAT | SWT.RIGHT);
     minDealCountText.setText("" + ApartmentRegistry.getInstance().getMinTradeCount());
@@ -113,7 +114,7 @@ public class Main {
     minDealCountText.setLayoutData(gd);
 
     l = new Label(filterPane, SWT.NONE);
-    l.setText("매매건수 이상");
+    l.setText("[건]매매건수 이상");
 
     Text minTrimmedPriceText = new Text(filterPane, SWT.BORDER | SWT.FLAT | SWT.RIGHT);
     minTrimmedPriceText.setText("" + ApartmentRegistry.getInstance().getTrimmedMinPrice() / 10000);
@@ -129,7 +130,7 @@ public class Main {
     minTrimmedPriceText.setLayoutData(gd);
 
     l = new Label(filterPane, SWT.NONE);
-    l.setText("매매가(80%) 이상");
+    l.setText("[억]매매가(80%) 이상");
 
     Text minPyongText = new Text(filterPane, SWT.BORDER | SWT.FLAT | SWT.RIGHT);
     minPyongText.setText("" + ApartmentRegistry.getInstance().getMinPyong());
@@ -145,7 +146,7 @@ public class Main {
     minPyongText.setLayoutData(gd);
 
     l = new Label(filterPane, SWT.NONE);
-    l.setText("전용면적 이상");
+    l.setText("[평]전용면적 이상");
 
     Text rentDealCountText = new Text(filterPane, SWT.BORDER | SWT.FLAT | SWT.RIGHT);
     rentDealCountText.setText("" + ApartmentRegistry.getInstance().getMinRentDealCount());
@@ -161,23 +162,39 @@ public class Main {
     rentDealCountText.setLayoutData(gd);
 
     l = new Label(filterPane, SWT.NONE);
-    l.setText("임대건수 이상");
+    l.setText("[건]임대건수 이상");
 
-    Text rentRatioText = new Text(filterPane, SWT.BORDER | SWT.FLAT | SWT.RIGHT);
-    rentRatioText.setText("" + ApartmentRegistry.getInstance().getMinRentRatio() * 100.f);
-    rentRatioText.addModifyListener(event->{
+    Text feeOverDepositText = new Text(filterPane, SWT.BORDER | SWT.FLAT | SWT.RIGHT);
+    feeOverDepositText.setText("" + ApartmentRegistry.getInstance().getMinFeeOverDeposit() * 100.f);
+    feeOverDepositText.addModifyListener(event->{
       try {
-        ApartmentRegistry.getInstance().setMinRentRatio(Integer.parseInt(rentRatioText.getText()) / 100.f, true);
+        ApartmentRegistry.getInstance().setMinFeeOverDeposit(Float.parseFloat(feeOverDepositText.getText()) / 100.f, true);
         refreshTable();
       } catch (NumberFormatException ignored) {
       }
     });
     gd = new GridData();
     gd.widthHint = 30;
-    rentRatioText.setLayoutData(gd);
+    feeOverDepositText.setLayoutData(gd);
 
     l = new Label(filterPane, SWT.NONE);
-    l.setText("80%연임대/보증금 이상");
+    l.setText("[%]연임대료/임대보증금(80%) 이상");
+
+    Text depositOverPriceText = new Text(filterPane, SWT.BORDER | SWT.FLAT | SWT.RIGHT);
+    depositOverPriceText.setText("" + ApartmentRegistry.getInstance().getMinDepositOverPrice() * 100.f);
+    depositOverPriceText.addModifyListener(event->{
+      try {
+        ApartmentRegistry.getInstance().setMinDepositOverPrice(Float.parseFloat(depositOverPriceText.getText()) / 100.f, true);
+        refreshTable();
+      } catch (NumberFormatException ignored) {
+      }
+    });
+    gd = new GridData();
+    gd.widthHint = 30;
+    depositOverPriceText.setLayoutData(gd);
+
+    l = new Label(filterPane, SWT.NONE);
+    l.setText("[%]환산보증금/매매가(80%) 이상");
 
     table = new Table(shell, SWT.VIRTUAL | SWT.FULL_SELECTION);
     table.setLayoutData(new GridData(GridData.FILL_BOTH));
@@ -199,41 +216,26 @@ public class Main {
     column.setText("전용면적");
     column.setWidth(60);
     column = new TableColumn(table, SWT.RIGHT);
-    column.setText("평균매매가");
-    column.setWidth(80);
-    column = new TableColumn(table, SWT.RIGHT);
-    column.setText("80%매매가");
+    column.setText("매매가(80%)");
     column.setWidth(80);
     column = new TableColumn(table, SWT.RIGHT);
     column.setText("매매건수");
     column.setWidth(60);
     column = new TableColumn(table, SWT.RIGHT);
-    column.setText("평균임대보증금");
+    column.setText("임대보증금(80%)");
+    column.setWidth(110);
+    column = new TableColumn(table, SWT.RIGHT);
+    column.setText("월임대료(80%)");
     column.setWidth(100);
-    column = new TableColumn(table, SWT.RIGHT);
-    column.setText("80%임대보증금");
-    column.setWidth(100);
-    column = new TableColumn(table, SWT.RIGHT);
-    column.setText("평균월임대료");
-    column.setWidth(90);
-    column = new TableColumn(table, SWT.RIGHT);
-    column.setText("80%월임대료");
-    column.setWidth(90);
     column = new TableColumn(table, SWT.RIGHT);
     column.setText("임대건수");
     column.setWidth(60);
     column = new TableColumn(table, SWT.RIGHT);
-    column.setText("평균연임대/보증금");
-    column.setWidth(115);
+    column.setText("연임대료/임대보증금(80%)");
+    column.setWidth(160);
     column = new TableColumn(table, SWT.RIGHT);
-    column.setText("80%연임대/보증금");
-    column.setWidth(115);
-    column = new TableColumn(table, SWT.RIGHT);
-    column.setText("평균환산보증금/매매가");
-    column.setWidth(140);
-    column = new TableColumn(table, SWT.RIGHT);
-    column.setText("80%환산보증금/매매가");
-    column.setWidth(140);
+    column.setText("환산보증금/매매가(80%)");
+    column.setWidth(150);
 
     DecimalFormat ukFormat = new DecimalFormat("#.##");
     table.addListener(SWT.SetData, event -> {
@@ -248,25 +250,19 @@ public class Main {
       Dong dong = danji.getDong();
       Gugun gugun = dong.getGugun();
       Sido sido = gugun.getSido();
+      RentMetric tm = apartment.getTrimmedRentMetric();
       item.setText(0, sido.getName());
       item.setText(1, gugun.getName());
       item.setText(2, dong.getName());
       item.setText(3, danji.getName());
       item.setText(4, apartment.getPyong() + "평");
-      item.setText(5, ukFormat.format(apartment.getAverageTradePrice() / 10000.f) + "억");
-      item.setText(6, ukFormat.format(apartment.getTrimmedTradePrice() / 10000.f) + "억");
-      item.setText(7, apartment.getTradeCount() + "건");
-      float[] rents = apartment.getRentFee();
-      float[] trimmedRents = apartment.getTrimmedRentFee();
-      item.setText(8, ukFormat.format(rents[0] / 10000.f) + "억");
-      item.setText(9, ukFormat.format(trimmedRents[0] / 10000.f) + "억");
-      item.setText(10, (int)rents[1] + "만");
-      item.setText(11, (int)trimmedRents[1] + "만");
-      item.setText(12, apartment.getRentCount() + "건");
-      item.setText(13, ukFormat.format(rents[2] * 100) + "%");
-      item.setText(14, ukFormat.format(trimmedRents[2] * 100) + "%");
-      item.setText(15, ukFormat.format(rents[3] * 100) + "%");
-      item.setText(16, ukFormat.format(trimmedRents[3] * 100) + "%");
+      item.setText(5, ukFormat.format(apartment.getTrimmedTradePrice() / 10000.f) + "억");
+      item.setText(6, apartment.getTradeCount() + "건");
+      item.setText(7, ukFormat.format(tm.getAverageDeposit() / 10000.f) + "억");
+      item.setText(8, tm.getMonthlyRentFee() + "만");
+      item.setText(9, apartment.getRentCount() + "건");
+      item.setText(10, ukFormat.format(tm.getFeeOverDeposit() * 100) + "%");
+      item.setText(11, ukFormat.format(tm.getDepositOverPrice() * 100) + "%");
     });
 
     queryTime = null;

@@ -12,13 +12,14 @@ public class ApartmentRegistry {
   private static final ApartmentRegistry instance = new ApartmentRegistry();
   private List<Apartment> apartments = new ArrayList<>();
   private List<Apartment> syncApartments = Collections.synchronizedList(apartments);
-  private int minTradeCount = 0;
   private List<Apartment> filtered = apartments;
-  private float trimmedMinPrice = 0;
-  private int minPyong = 0;
-  private int minRentDealCount = 0;
-  private float minRentRatio = 0;
   private float interest;
+  private int minTradeCount;
+  private float trimmedMinPrice;
+  private int minPyong ;
+  private int minRentDealCount ;
+  private float minFeeOverDeposit;
+  private float minDepositOverPrice;
 
   public static ApartmentRegistry getInstance() {
     return instance;
@@ -70,7 +71,11 @@ public class ApartmentRegistry {
       if (a.getRentCount() < minRentDealCount) {
         continue;
       }
-      if (a.getTrimmedRentFee()[2] < minRentRatio) {
+      RentMetric rm = a.getTrimmedRentMetric();
+      if (rm.getFeeOverDeposit() < minFeeOverDeposit) {
+        continue;
+      }
+      if (rm.getDepositOverPrice() < minDepositOverPrice) {
         continue;
       }
       fd.add(a);
@@ -98,7 +103,12 @@ public class ApartmentRegistry {
   }
 
   public void applyFilters() {
-    if (minTradeCount <= 0 && trimmedMinPrice <= 0 && minPyong <= 0 && minRentDealCount <= 0 && minRentRatio <= 0) {
+    if (minTradeCount <= 0 &&
+            trimmedMinPrice <= 0 &&
+            minPyong <= 0 &&
+            minRentDealCount <= 0 &&
+            minFeeOverDeposit <= 0 &&
+            minDepositOverPrice <= 0) {
       filtered = apartments;
     } else {
       filtered = filter();
@@ -135,15 +145,30 @@ public class ApartmentRegistry {
     applyFilters();
   }
 
-  public float getMinRentRatio() {
-    return minRentRatio;
+  public float getMinFeeOverDeposit() {
+    return minFeeOverDeposit;
   }
 
-  public void setMinRentRatio(float minRentRatio, boolean apply) {
-    if (this.minRentRatio == minRentRatio) {
+  public void setMinFeeOverDeposit(float value, boolean apply) {
+    if (minFeeOverDeposit == value) {
       return;
     }
-    this.minRentRatio = minRentRatio;
+    minFeeOverDeposit = value;
+    if (!apply) {
+      return;
+    }
+    applyFilters();
+  }
+
+  public float getMinDepositOverPrice() {
+    return minDepositOverPrice;
+  }
+
+  public void setMinDepositOverPrice(float value, boolean apply) {
+    if (minDepositOverPrice == value) {
+      return;
+    }
+    minDepositOverPrice = value;
     if (!apply) {
       return;
     }
@@ -151,11 +176,14 @@ public class ApartmentRegistry {
   }
 
   public void loadFilters(Properties props) {
-    String str = props.getProperty("MinTradeCount", "0");
+    String str = props.getProperty("Interest", "2.23");
+    float f = Float.parseFloat(str);
+    setInterest(f);
+    str = props.getProperty("MinTradeCount", "0");
     int i = Integer.parseInt(str);
     setMinTradeCount(i, false);
     str = props.getProperty("TrimmedMinPrice", "0");
-    float f = Float.parseFloat(str);
+    f = Float.parseFloat(str);
     setTrimmedMinPrice(f, false);
     str = props.getProperty("MinPyong", "0");
     i = Integer.parseInt(str);
@@ -163,21 +191,18 @@ public class ApartmentRegistry {
     str = props.getProperty("MinRentDealCount", "0");
     i = Integer.parseInt(str);
     setMinRentDealCount(i, false);
-    str = props.getProperty("MinRentRatio", "0");
+    str = props.getProperty("MinFeeOverDeposit", "0");
     f = Float.parseFloat(str);
-    setMinRentRatio(f, false);
-    str = props.getProperty("Interest", "2.23");
-    f = Float.parseFloat(str);
-    setInterest(f);
+    setMinFeeOverDeposit(f, false);
   }
 
   public void storeFilters(Properties props) {
+    props.setProperty("Interest", "" + getInterest());
     props.setProperty("MinTradeCount", "" + getMinTradeCount());
     props.setProperty("TrimmedMinPrice", "" + getTrimmedMinPrice());
     props.setProperty("MinPyong", "" + getMinPyong());
     props.setProperty("MinRentDealCount", "" + getMinRentDealCount());
-    props.setProperty("MinRentRatio", "" + getMinRentRatio());
-    props.setProperty("Interest", "" + getInterest());
+    props.setProperty("MinFeeOverDeposit", "" + getMinFeeOverDeposit());
   }
 
   public void setInterest(float interest) {
