@@ -88,10 +88,11 @@ public class Apartment implements Comparable<Apartment> {
     }
     float feeOverDeposit = depositSum == 0 ? 0 : feeSum * 12.f / depositSum;
     float interest = ApartmentRegistry.getInstance().getInterest() / 100.f;
-    float conversedAverageDeposit = (feeSum * 12.f / interest + depositSum) / rentDeals.size();
+    float conversedAverageDeposit = rentDeals.size() == 0 ? 0 : (feeSum * 12.f / interest + depositSum) / rentDeals.size();
     float depositOverPrice = conversedAverageDeposit /  getAverageTradePrice();
-    return new RentMetric(depositSum / rentDeals.size(),
-            feeSum / rentDeals.size(),
+    return new RentMetric(
+            rentDeals.size() == 0 ? 0 : depositSum / rentDeals.size(),
+            rentDeals.size() == 0 ? 0 : feeSum / rentDeals.size(),
             feeOverDeposit,
             depositOverPrice);
   }
