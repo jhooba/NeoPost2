@@ -132,6 +132,9 @@ public class Danji extends NodeBase implements Comparable<Danji> {
 
     Gson gson = new GsonBuilder().create();
     Danji.MonthListListObj list = gson.fromJson(reader, Danji.MonthListListObj.class);
+    if (list.getJsonList() == null) {
+      return;
+    }
     for (Danji.MonthListObj j : list.getJsonList()) {
       int startMonth = (y == thisYear) ? 0 : thisMonth - 1;
       for (int m = startMonth; m < j.getMonthList().size(); ++m) {
